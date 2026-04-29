@@ -1,61 +1,66 @@
 ﻿using AccountingHelper.Contexts;
+using AccountingHelper.Extensions;
 using AccountingHelper.Models;
+using AccountingHelper.Services;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AccountingHelper.Controllers;
 
 [ApiController]
-[Route("employees")]
-public class EmployeesController(ApplicationDbContext context) : ControllerBase
+[ApiVersion("1.0")]
+[Route("v{version:apiVersion}/employees")]
+public class EmployeesController : ControllerBase
 {
-    [HttpGet("get-all")]
-    public IActionResult GetEmployees()
-    {
-        var employees = context.Employees.ToList();
+    private readonly IEmployeeService _employeeService;
 
-        return Ok(employees);
+    public EmployeesController(IEmployeeService employeeService)
+    {
+        _employeeService = employeeService;
+    }
+    
+    [HttpGet()]
+    public async Task<IActionResult> GetEmployees(
+        [FromQuery] PaginationParams pagination, 
+        CancellationToken ct)
+    {
+        var result = await _employeeService
+            .GetEmployees(pagination.Page, pagination.PageSize, ct);
+        
+        var response = result.Select(e => e.ToResponse()).ToList();
+
+        return Ok(response);
     }
 
 
-    [HttpGet("get/{id}")]
-    public IActionResult GetEmployee(string id)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetEmployee(Guid id, CancellationToken ct)
     {
-        var employee = context.Employees.FirstOrDefault(e => e.Id == id);
+        var result = await _employeeService.GetEmployee(id, ct);
+        
+        var response = result?.ToResponse();
 
-        if (employee == null) return NotFound();
-
-        return Ok(employee);
+        return Ok(response);
     }
 
-    [HttpPost("create")]
-    public IActionResult CreateEmployee(Employee employee)
+    [HttpPost()]
+    public async Task<IActionResult> CreateEmployee(
+        [FromBody] CreateEmployeeRequest request,
+        CancellationToken ct)
     {
-        try
-        {
-            context.Employees.Add(employee);
-            return Ok();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return BadRequest();
-        }
+        var employee = await _employeeService.CreateEmployee(request.ToModel(), ct);
+        
+        var response = employee.ToResponse();
+        
+        return CreatedAtAction(nameof(GetEmployee), new {id = response.Id}, response);
     }
 
-    [HttpPut("fire/{id}")]
-    public IActionResult FireEmployee(string id)
+    [HttpPut("{id:guid}/fire")]
+    public async Task<IActionResult> FireEmployee(Guid id, CancellationToken ct)
     {
-        try
-        {
-            var employee = context.Employees.FirstOrDefault(e => e.Id == id);
-            employee.Status = "Fired";
-
-            return Ok();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return BadRequest();
-        }
+        var result = await _employeeService.FireEmployee(id, ct);
+        var response = result.ToResponse();
+        return Ok(response);
     }
 }

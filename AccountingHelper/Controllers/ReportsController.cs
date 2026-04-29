@@ -1,5 +1,6 @@
 ﻿using AccountingHelper.Contexts;
 using AccountingHelper.Services;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,42 +10,53 @@ namespace AccountingHelper.Controllers;
 ///     Provides endpoints for generating various reports related to the accounting system.
 /// </summary>
 [ApiController]
-[Route("reporting")]
-public class ReportsController(
-    IReportControllerService reportControllerService,
-    ApplicationDbContext dbContext) : ControllerBase
+[ApiVersion("1.0")]
+[Route("v{version:apiVersion}/reporting")]
+public class ReportsController : ControllerBase
 {
-    [HttpGet("employee-count")]
-    public async Task<IActionResult> GetEmployeeCount()
+    private readonly IReportService _reportService;
+
+    public ReportsController(IReportService reportService)
     {
-        return Ok(await reportControllerService.CountEmployees());
+        _reportService = reportService;
+    }
+    
+    [HttpGet("employees/count")]
+    public async Task<IActionResult> GetEmployeeCount(CancellationToken ct)
+    {
+        var count = await _reportService.CountEmployees(ct);
+        return Ok(new { TotalCount = count });
     }
 
-    [HttpGet("employee-status/{id}")]
-    public async Task<IActionResult> GetEmployeeStatus(string id)
+    [HttpGet("{id:guid}/status")]
+    public async Task<IActionResult> GetEmployeeStatus(Guid id, CancellationToken ct)
     {
-        return Ok(await reportControllerService.GetEmployeeStatus(id));
+        var status = await _reportService.GetEmployeeStatus(id, ct);
+        return Ok(new { status });
     }
 
     [HttpGet("salaries")]
-    public async Task<IActionResult> GetSalaries()
+    public async Task<IActionResult> GetSalaries(CancellationToken ct)
     {
-        return Ok(await reportControllerService.GetTotalSalaries());
+        var salaries = await _reportService.GetTotalSalaries(ct);
+        return Ok(new { totalSum = salaries });
     }
 
-    [HttpGet("get-salary-by-type/{id}/{type}")]
-    public async Task<IActionResult> GetSalaryByType(string id, string type)
+    [HttpGet("salary/{id:guid}")]
+    public async Task<IActionResult> GetSalaryByType(
+        Guid id, 
+        [FromQuery] string type,
+        CancellationToken ct)
     {
-        var employee = await dbContext.Employees.FirstAsync(e => e.Id == id);
-
-        return Ok(await reportControllerService.GetSalaryByType(employee, type));
+        var salary = await _reportService.GetSalaryByType(id, type, ct);
+        return Ok(new { salary });
     }
 
-    [HttpGet("calculate-taxes/{id}")]
-    public async Task<IActionResult> CalculateTaxes(string id)
+    [HttpGet("calculate-taxes/{id:guid}")]
+    public async Task<IActionResult> CalculateTaxes(Guid id, CancellationToken ct)
     {
-        var employee = await dbContext.Employees.FirstAsync(e => e.Id == id);
+        var taxes = await _reportService.CalculateTaxes(id, ct);
 
-        return Ok(await reportControllerService.CalculateTaxes(employee));
+        return Ok(new { taxes });
     }
 }
