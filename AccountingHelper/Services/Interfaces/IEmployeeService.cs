@@ -1,6 +1,6 @@
-using AccountingHelper.Models;
+using AccountingHelper.Domain.Models;
 
-namespace AccountingHelper.Services;
+namespace AccountingHelper.Services.Interfaces;
 
 public interface IEmployeeService
 {

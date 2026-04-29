@@ -1,7 +1,8 @@
 using AccountingHelper.Contexts;
+using AccountingHelper.Domain.Enums;
+using AccountingHelper.Domain.Models;
 using AccountingHelper.Extensions;
-using AccountingHelper.Models;
-using AccountingHelper.Models.Enums;
+using AccountingHelper.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingHelper.Services;

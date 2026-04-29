@@ -1,4 +1,7 @@
-using AccountingHelper.Models;
+using AccountingHelper.Domain.Models;
+using AccountingHelper.DTOs.Requests;
+using AccountingHelper.DTOs.Responses;
+using AccountingHelper.Infrastructure.Data.Entities;
 
 namespace AccountingHelper.Extensions;
 

@@ -1,6 +1,6 @@
-﻿using AccountingHelper.Models.Enums;
+﻿using AccountingHelper.Domain.Enums;
 
-namespace AccountingHelper.Models;
+namespace AccountingHelper.Domain.Models;
 
 public class Employee
 {

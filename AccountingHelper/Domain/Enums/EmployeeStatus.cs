@@ -1,4 +1,4 @@
-namespace AccountingHelper.Models.Enums;
+namespace AccountingHelper.Domain.Enums;
 
 public enum EmployeeStatus
 {

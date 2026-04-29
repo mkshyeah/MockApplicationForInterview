@@ -1,4 +1,4 @@
-namespace AccountingHelper.Models;
+namespace AccountingHelper.DTOs.Requests;
 
 public class PaginationParams
 {

@@ -1,6 +1,4 @@
-using AccountingHelper.Models.Enums;
-
-namespace AccountingHelper.Models;
+namespace AccountingHelper.DTOs.Requests;
 
 public class CreateEmployeeRequest
 {

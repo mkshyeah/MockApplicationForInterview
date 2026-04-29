@@ -1,7 +1,6 @@
-﻿using AccountingHelper.Models;
-using AccountingHelper.Models.Enums;
+﻿using AccountingHelper.Domain.Enums;
 
-namespace AccountingHelper.Services;
+namespace AccountingHelper.Services.Interfaces;
 
 public interface IReportService
 {
