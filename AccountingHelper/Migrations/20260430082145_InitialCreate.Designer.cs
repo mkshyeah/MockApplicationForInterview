@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccountingHelper.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260428073214_Initial")]
-    partial class Initial
+    [Migration("20260430082145_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,10 +25,14 @@ namespace AccountingHelper.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("AccountingHelper.Models.Employee", b =>
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.EmployeeEntity", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Department")
                         .IsRequired()
@@ -38,10 +42,14 @@ namespace AccountingHelper.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("HireDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -50,6 +58,7 @@ namespace AccountingHelper.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Salary")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Status")
@@ -59,6 +68,9 @@ namespace AccountingHelper.Migrations
                     b.Property<DateTime?>("TerminationDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.ToTable("Employees");
@@ -66,67 +78,79 @@ namespace AccountingHelper.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "66a5203d-519d-4a64-9aa2-44dd55fa0c5a",
+                            Id = new Guid("046e0b69-f987-4000-afad-f9b9fa2b6050"),
+                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1910),
                             Department = "Engineering",
                             Email = "aigerim.nurlanova@contoso.kz",
+                            FirstName = "Aigerim",
                             HireDate = new DateTime(2021, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Aigerim Nurlanova",
+                            LastName = "Nurlanova",
                             Position = "Senior Software Engineer",
                             Salary = 85000m,
                             Status = "Active"
                         },
                         new
                         {
-                            Id = "60a5eae8-a941-410f-b215-650222262f55",
+                            Id = new Guid("c912173c-db4a-4a87-9739-d5b82fe26400"),
+                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1910),
                             Department = "Engineering",
                             Email = "daniyar.akhmetov@contoso.kz",
+                            FirstName = "Daniyar",
                             HireDate = new DateTime(2019, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Daniyar Akhmetov",
+                            LastName = "Akhmetov",
                             Position = "Engineering Manager",
                             Salary = 1200000m,
                             Status = "Active"
                         },
                         new
                         {
-                            Id = "a93249a9-842f-4b55-b594-f49711dfb7fd",
+                            Id = new Guid("73750a2b-5dba-4617-9363-085cc14f6e6d"),
+                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1920),
                             Department = "Design",
                             Email = "madina.serikova@contoso.kz",
+                            FirstName = "Madina",
                             HireDate = new DateTime(2022, 1, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Madina Serikova",
+                            LastName = "Serikova",
                             Position = "Product Designer",
                             Salary = 700000m,
                             Status = "Active"
                         },
                         new
                         {
-                            Id = "658fddf0-11f6-4c59-8622-3fa8af588e0b",
+                            Id = new Guid("0efb8546-825a-4692-893a-0cf3547770dd"),
+                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1920),
                             Department = "Engineering",
                             Email = "yerlan.tursynov@contoso.kz",
+                            FirstName = "Yerlan",
                             HireDate = new DateTime(2020, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Yerlan Tursynov",
+                            LastName = "Tursynov",
                             Position = "QA Engineer",
                             Salary = 550000m,
-                            Status = "Terminated",
+                            Status = "Fired",
                             TerminationDate = new DateTime(2024, 11, 30, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
-                            Id = "8aaeff3d-e216-49d7-9e03-8f46a3f82a7f",
+                            Id = new Guid("630a08b1-637d-465d-8718-473d987fd045"),
+                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1930),
                             Department = "HR",
                             Email = "aliya.bekova@contoso.kz",
+                            FirstName = "Aliya",
                             HireDate = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Aliya Bekova",
+                            LastName = "Bekova",
                             Position = "HR Specialist",
                             Salary = 600000m,
-                            Status = "OnLeave"
+                            Status = "OnVacation"
                         },
                         new
                         {
-                            Id = "0f48f0d8-00bc-4ed4-805b-4c41efdb2f42",
+                            Id = new Guid("ab2d8a30-d5af-4f6e-8d4e-165690b4ba35"),
+                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1930),
                             Department = "Engineering",
                             Email = "ruslan.iskakov@contoso.kz",
+                            FirstName = "Ruslan",
                             HireDate = new DateTime(2021, 11, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Ruslan Iskakov",
+                            LastName = "Iskakov",
                             Position = "DevOps Engineer",
                             Salary = 900000m,
                             Status = "Active"
