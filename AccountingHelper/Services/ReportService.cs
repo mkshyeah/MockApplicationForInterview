@@ -1,6 +1,7 @@
 ﻿using AccountingHelper.Contexts;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Services.Interfaces;
+using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingHelper.Services;
@@ -14,12 +15,12 @@ public class ReportService : IReportService
         _dbContext= dbContext;
     }
 
-    public async Task<int> CountEmployees(CancellationToken ct)
+    public async Task<ErrorOr<int>> CountEmployees(CancellationToken ct)
     {
         return await _dbContext.Employees.CountAsync(ct);
     }
 
-    public async Task<EmployeeStatus> GetEmployeeStatus(Guid id, CancellationToken ct)
+    public async Task<ErrorOr<EmployeeStatus>> GetEmployeeStatus(Guid id, CancellationToken ct)
     {
         var status = await _dbContext.Employees
             .AsNoTracking()
@@ -28,19 +29,19 @@ public class ReportService : IReportService
             .FirstOrDefaultAsync(ct);
         
         if(status == null)
-            throw new KeyNotFoundException($"Employee with id {id} not found");
+            return Error.NotFound("Employee.NotFound",$"Employee with id {id} not found");
         
         return status.Value;
     }
 
-    public async Task<decimal> GetTotalSalaries(CancellationToken ct)
+    public async Task<ErrorOr<decimal>> GetTotalSalaries(CancellationToken ct)
     {
         var totalSalaries = await _dbContext.Employees.SumAsync(e => e.Salary,ct);
 
         return totalSalaries;
     }
 
-    public async Task<decimal> GetSalaryByType(Guid id, string type, CancellationToken ct)
+    public async Task<ErrorOr<decimal>> GetSalaryByType(Guid id, SalaryType type, CancellationToken ct)
     {
         var salary = await _dbContext.Employees
             .AsNoTracking()
@@ -49,15 +50,15 @@ public class ReportService : IReportService
             .FirstOrDefaultAsync(ct);
         
         if (salary == null)
-            throw new KeyNotFoundException($"Employee with id {id} not found");
+            return Error.NotFound("Employee.NotFound",$"Employee with id {id} not found");
         
         return type switch
         {
-            "hourly" => salary.Value / 2080,
-            "monthly" => salary.Value / 12,
-            "weekly" => salary.Value / 52,
-            "daily" => salary.Value/ 365,
-            _ => throw new ArgumentException("Invalid salary type")
+            SalaryType.Hourly => salary.Value / 2080,
+            SalaryType.Monthly => salary.Value / 12,
+            SalaryType.Weekly => salary.Value / 52,
+            SalaryType.Daily => salary.Value/ 365,
+            _ => Error.Validation("Salary.Invalid", "Invalid salary type")
         };
     }
 
@@ -70,7 +71,7 @@ public class ReportService : IReportService
     /// <param name="employee"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public async Task<decimal> CalculateTaxes(Guid id, CancellationToken ct)
+    public async Task<ErrorOr<decimal>> CalculateTaxes(Guid id, CancellationToken ct)
     {
         var salary = await _dbContext.Employees
             .AsNoTracking()
@@ -79,7 +80,7 @@ public class ReportService : IReportService
             .FirstOrDefaultAsync(ct);
         
         if (salary == null)
-            throw new KeyNotFoundException($"Employee with id {id} not found");
+            return Error.NotFound("Employee.NotFound",$"Employee with id {id} not found");
 
         return salary switch
         {

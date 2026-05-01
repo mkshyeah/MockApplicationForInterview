@@ -7,10 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccountingHelper.Controllers;
 
-[ApiController]
 [ApiVersion("1.0")]
 [Route("v{version:apiVersion}/employees")]
-public class EmployeesController : ControllerBase
+public class EmployeesController : ApiController
 {
     private readonly IEmployeeService _employeeService;
 
@@ -19,17 +18,19 @@ public class EmployeesController : ControllerBase
         _employeeService = employeeService;
     }
     
-    [HttpGet()]
+    [HttpGet]
     public async Task<IActionResult> GetEmployees(
         [FromQuery] PaginationParams pagination, 
         CancellationToken ct)
     {
         var result = await _employeeService
             .GetEmployees(pagination.Page, pagination.PageSize, ct);
-        
-        var response = result.Select(e => e.ToResponse()).ToList();
 
-        return Ok(response);
+
+        return result.Match(
+            employees => Ok(employees.Select(e => e.ToResponse()).ToList()),
+            errors => Problem(errors)
+            );
     }
 
 
@@ -37,29 +38,42 @@ public class EmployeesController : ControllerBase
     public async Task<IActionResult> GetEmployee(Guid id, CancellationToken ct)
     {
         var result = await _employeeService.GetEmployee(id, ct);
-        
-        var response = result?.ToResponse();
 
-        return Ok(response);
+        return result.Match(
+            employee => Ok(employee.ToResponse()),
+            errors => Problem(errors)
+        );
     }
 
-    [HttpPost()]
+    [HttpPost]
     public async Task<IActionResult> CreateEmployee(
         [FromBody] CreateEmployeeRequest request,
         CancellationToken ct)
     {
-        var employee = await _employeeService.CreateEmployee(request.ToModel(), ct);
-        
-        var response = employee.ToResponse();
-        
-        return CreatedAtAction(nameof(GetEmployee), new {id = response.Id}, response);
+        var result = await _employeeService.CreateEmployee(request.ToModel(), ct);
+
+        return result.Match(
+            employee =>
+            {
+                var response = employee.ToResponse();
+                return CreatedAtAction(
+                    nameof(GetEmployee),
+                    new { id = response.Id },
+                    response
+                );
+            },
+            errors => Problem(errors)
+            );
     }
 
-    [HttpPut("{id:guid}/fire")]
+    [HttpPatch("{id:guid}/fire")]
     public async Task<IActionResult> FireEmployee(Guid id, CancellationToken ct)
     {
         var result = await _employeeService.FireEmployee(id, ct);
-        var response = result.ToResponse();
-        return Ok(response);
+
+        return result.Match(
+            employee => Ok(employee.ToResponse()), 
+            errors => Problem(errors)
+            );
     }
 }

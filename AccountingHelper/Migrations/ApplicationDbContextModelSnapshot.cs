@@ -26,10 +26,13 @@ namespace AccountingHelper.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Department")
                         .IsRequired()
@@ -75,21 +78,21 @@ namespace AccountingHelper.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("046e0b69-f987-4000-afad-f9b9fa2b6050"),
-                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1910),
+                            Id = new Guid("11111111-0000-0000-0000-000000000001"),
+                            CreatedAt = new DateTime(2021, 3, 15, 0, 0, 0, 0, DateTimeKind.Utc),
                             Department = "Engineering",
                             Email = "aigerim.nurlanova@contoso.kz",
                             FirstName = "Aigerim",
                             HireDate = new DateTime(2021, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             LastName = "Nurlanova",
                             Position = "Senior Software Engineer",
-                            Salary = 85000m,
+                            Salary = 850000m,
                             Status = "Active"
                         },
                         new
                         {
-                            Id = new Guid("c912173c-db4a-4a87-9739-d5b82fe26400"),
-                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1910),
+                            Id = new Guid("11111111-0000-0000-0000-000000000002"),
+                            CreatedAt = new DateTime(2019, 8, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Department = "Engineering",
                             Email = "daniyar.akhmetov@contoso.kz",
                             FirstName = "Daniyar",
@@ -101,8 +104,8 @@ namespace AccountingHelper.Migrations
                         },
                         new
                         {
-                            Id = new Guid("73750a2b-5dba-4617-9363-085cc14f6e6d"),
-                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1920),
+                            Id = new Guid("11111111-0000-0000-0000-000000000003"),
+                            CreatedAt = new DateTime(2022, 1, 10, 0, 0, 0, 0, DateTimeKind.Utc),
                             Department = "Design",
                             Email = "madina.serikova@contoso.kz",
                             FirstName = "Madina",
@@ -114,8 +117,8 @@ namespace AccountingHelper.Migrations
                         },
                         new
                         {
-                            Id = new Guid("0efb8546-825a-4692-893a-0cf3547770dd"),
-                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1920),
+                            Id = new Guid("11111111-0000-0000-0000-000000000004"),
+                            CreatedAt = new DateTime(2020, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             Department = "Engineering",
                             Email = "yerlan.tursynov@contoso.kz",
                             FirstName = "Yerlan",
@@ -128,8 +131,8 @@ namespace AccountingHelper.Migrations
                         },
                         new
                         {
-                            Id = new Guid("630a08b1-637d-465d-8718-473d987fd045"),
-                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1930),
+                            Id = new Guid("11111111-0000-0000-0000-000000000005"),
+                            CreatedAt = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Department = "HR",
                             Email = "aliya.bekova@contoso.kz",
                             FirstName = "Aliya",
@@ -141,8 +144,8 @@ namespace AccountingHelper.Migrations
                         },
                         new
                         {
-                            Id = new Guid("ab2d8a30-d5af-4f6e-8d4e-165690b4ba35"),
-                            CreatedAt = new DateTime(2026, 4, 30, 8, 21, 45, 172, DateTimeKind.Utc).AddTicks(1930),
+                            Id = new Guid("11111111-0000-0000-0000-000000000006"),
+                            CreatedAt = new DateTime(2021, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
                             Department = "Engineering",
                             Email = "ruslan.iskakov@contoso.kz",
                             FirstName = "Ruslan",

@@ -1,18 +1,31 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AccountingHelper.DTOs.Requests;
 
 public class CreateEmployeeRequest
 {
-    public string FirstName { get; set; }
+    [Required]
+    [MaxLength(100)]
+    public required string FirstName { get; set; }
     
-    public string LastName { get; set; }
+    [Required]
+    [MaxLength(100)]
+    public required string LastName { get; set; }
 
-    public string Email { get; set; }
+    [Required]
+    [EmailAddress]
+    public required string Email { get; set; }
 
-    public string Position { get; set; }
+    [Required]
+    [MaxLength(100)]
+    public required string Position { get; set; }
 
+    [Range(0, 10_000_000)]
     public decimal Salary { get; set; }
 
-    public string Department { get; set; }
+    [Required]
+    [MaxLength(100)]
+    public required string Department { get; set; }
     
     public DateTime HireDate { get; set; }
 }

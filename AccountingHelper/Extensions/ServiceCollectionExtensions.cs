@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using AccountingHelper.Contexts;
+using AccountingHelper.Middleware;
 using AccountingHelper.Services;
 using AccountingHelper.Services.Interfaces;
 using Asp.Versioning;
@@ -33,8 +34,6 @@ public static class ServiceCollectionExtensions
                 options.GroupNameFormat = "'v'VVV";
                 options.SubstituteApiVersionInUrl = true;
             });
-
-        services.AddControllers();
         
         // 4. Настройка контроллеров и JSON
         services.AddControllers()
@@ -46,6 +45,10 @@ public static class ServiceCollectionExtensions
         
         // 5. Маленькие буквы в URL
         services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
+
+        // 6. Глобальная обработка ошибок
+        services.AddExceptionHandler<GlobalExceptionHandler>();
+        services.AddProblemDetails();
         
         return services;
     }

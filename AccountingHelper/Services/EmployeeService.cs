@@ -3,6 +3,7 @@ using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Models;
 using AccountingHelper.Extensions;
 using AccountingHelper.Services.Interfaces;
+using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingHelper.Services;
@@ -16,8 +17,17 @@ public class EmployeeService:IEmployeeService
         _dbContext = dbContext;
     }
     
-    public async Task<List<Employee>> GetEmployees(int page , int pageSize , CancellationToken ct )
+    public async Task<ErrorOr<List<Employee>>> GetEmployees(int page , int pageSize , CancellationToken ct )
     {
+        if (page < 1)
+            return Error.Validation("Page.Invalid", "Номер страницы должен быть больше 0");
+
+        if (pageSize < 1)   
+            return Error.Validation("PageSize.Invalid", "Кол-во элементов должно быть больше 0");
+        
+        if (pageSize > 100)
+            return Error.Validation("PageSize.TooLarge", "Нельзя запрашивать более 100 элементов за раз");
+
         return  await _dbContext.Employees
             .AsNoTracking()
             .OrderBy(e => e.CreatedAt)
@@ -27,30 +37,28 @@ public class EmployeeService:IEmployeeService
             .ToListAsync(ct);
     }
 
-    public async Task<Employee> GetEmployee(Guid id, CancellationToken ct)
+    public async Task<ErrorOr<Employee>> GetEmployee(Guid id, CancellationToken ct)
     {
         var employeeEntity = await _dbContext.Employees
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == id, ct);
 
         if (employeeEntity == null)
-            throw new KeyNotFoundException($"Employee with id {id} not found");
+            return Error.NotFound("Employee.NotFound",$"Employee with id {id} not found");
 
         return employeeEntity.ToModel();
     }
 
-    public async Task<Employee> CreateEmployee(Employee employee, CancellationToken ct)
+    public async Task<ErrorOr<Employee>> CreateEmployee(Employee employee, CancellationToken ct)
     {
-        if (employee == null) throw new ArgumentNullException(nameof(employee));
+        if (employee == null) return Error.Validation();
         
         var exists = await _dbContext.Employees.AnyAsync(e => e.Email == employee.Email, ct);
         
         if (exists)
-            throw new InvalidOperationException($"Employee with email {employee.Email} already exists");
+            return Error.Conflict("Employee.Exist",$"Employee with email {employee.Email} already exists");
         
         var employeeEntity = employee.ToEntity();
-        employeeEntity.Id = Guid.NewGuid();
-        employeeEntity.CreatedAt = DateTime.UtcNow;
         employeeEntity.Status = EmployeeStatus.Active;
 
         _dbContext.Employees.Add(employeeEntity);
@@ -60,16 +68,16 @@ public class EmployeeService:IEmployeeService
         return employeeEntity.ToModel();
     }
 
-    public async Task<Employee> FireEmployee(Guid id, CancellationToken ct)
+    public async Task<ErrorOr<Employee>> FireEmployee(Guid id, CancellationToken ct)
     {
         var employeeEntity = await _dbContext.Employees
             .FirstOrDefaultAsync(e => e.Id == id, ct);
         
         if (employeeEntity == null)
-            throw new KeyNotFoundException($"Employee with id {id} not found");
+            return Error.NotFound("Employee.NotFound",$"Employee with id {id} not found");
 
         if (employeeEntity.Status == EmployeeStatus.Fired)
-            throw new InvalidOperationException($"Employee with id {id} is fired");
+            return Error.Conflict("Employee.Fired",$"Employee with id {id} is fired");
         
         employeeEntity.TerminationDate = DateTime.UtcNow;
         employeeEntity.Status = EmployeeStatus.Fired;

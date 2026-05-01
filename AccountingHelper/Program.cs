@@ -18,6 +18,7 @@ if (app.Environment.IsEnvironment("local"))
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();

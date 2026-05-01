@@ -9,7 +9,6 @@ public static class EmployeeEntityExtensions
 {
     public static Employee ToModel(this EmployeeEntity entity)
     {
-        if(entity == null) return null;
         return new Employee
         {
             Id = entity.Id,
@@ -27,7 +26,6 @@ public static class EmployeeEntityExtensions
 
     public static EmployeeEntity ToEntity(this Employee model)
     {
-        if (model == null) return null;
         return new EmployeeEntity
         {
             Id = model.Id,
@@ -45,7 +43,6 @@ public static class EmployeeEntityExtensions
 
     public static Employee ToModel(this CreateEmployeeRequest request)
     {
-        if (request == null) return null;
         return new Employee
         {
             FirstName = request.FirstName,
@@ -60,11 +57,12 @@ public static class EmployeeEntityExtensions
     
     public static EmployeeResponse ToResponse(this Employee model)
     {
-        if (model == null) return null;
         return new EmployeeResponse
         {
             Id = model.Id,
             FullName = $"{model.FirstName} {model.LastName}",
+            Email = model.Email,
+            Department = model.Department,
             Position = model.Position,
             Status = model.Status.ToString(),
         };
