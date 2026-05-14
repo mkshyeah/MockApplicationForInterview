@@ -20,14 +20,14 @@ public class ReportsController : ControllerBase
     }
     
     [HttpGet("employees/count")]
-    public async Task<IActionResult> GetEmployeeCount(CancellationToken ct)
+    public async Task<IActionResult> GetEmployeeCount(CancellationToken ct=default)
     {
         var count = await _reportService.CountEmployees(ct);
         return Ok(count);
     }
 
     [HttpGet("employees/{id:guid}/status")]
-    public async Task<IActionResult> GetEmployeeStatus(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetEmployeeStatus(Guid id, CancellationToken ct=default)
     {
         var employeeStatus = await _reportService.GetEmployeeStatus(id, ct);
         
@@ -35,7 +35,7 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("salaries")]
-    public async Task<IActionResult> GetSalaries(CancellationToken ct)
+    public async Task<IActionResult> GetSalaries(CancellationToken ct=default)
     {
         var salaries = await _reportService.GetTotalSalaries(ct);
 
@@ -46,7 +46,7 @@ public class ReportsController : ControllerBase
     public async Task<IActionResult> GetSalaryByType(
         Guid id, 
         [FromQuery][Required] SalaryType type,
-        CancellationToken ct)
+        CancellationToken ct=default)
     {
         var salaryByType = await _reportService.GetSalaryByType(id, type, ct);
 
@@ -54,7 +54,7 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("employees/{id:guid}/taxes")]
-    public async Task<IActionResult> CalculateTaxes(Guid id, CancellationToken ct)
+    public async Task<IActionResult> CalculateTaxes(Guid id, CancellationToken ct=default)
     {
         var taxes = await _reportService.CalculateTaxes(id, ct);
         

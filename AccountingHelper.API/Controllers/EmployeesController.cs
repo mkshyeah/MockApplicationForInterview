@@ -40,7 +40,7 @@ public class EmployeesController : ControllerBase
 
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetEmployee(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetEmployee(Guid id, CancellationToken ct=default)
     {
         var result = await _employeeService.GetEmployee(id, ct);
 
@@ -52,7 +52,7 @@ public class EmployeesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateEmployee(
         [FromBody] CreateEmployeeRequest request,
-        CancellationToken ct)
+        CancellationToken ct=default)
     {
         var model = request.ToModel();
         var created = await _employeeService.CreateEmployee(model, ct);
@@ -61,7 +61,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/fire")]
-    public async Task<IActionResult> FireEmployee(Guid id, CancellationToken ct)
+    public async Task<IActionResult> FireEmployee(Guid id, CancellationToken ct=default)
     {
         var result = await _employeeService.FireEmployee(id, ct);
         return Ok(result.ToResponse());
