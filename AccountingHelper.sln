@@ -1,6 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper", "AccountingHelper\AccountingHelper.csproj", "{E0EC36BE-9E02-431D-A507-AB6B985D8880}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.API", "AccountingHelper.API\AccountingHelper.API.csproj", "{E0EC36BE-9E02-431D-A507-AB6B985D8880}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.Domain", "AccountingHelper.Domain\AccountingHelper.Domain.csproj", "{64274723-7F1A-49FC-9BB7-17CA9B0F491E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.Application", "AccountingHelper.Application\AccountingHelper.Application.csproj", "{2754A81A-1B3C-43EE-84F0-468304A6C0E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.Infrastructure", "AccountingHelper.Infrastructure\AccountingHelper.Infrastructure.csproj", "{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +18,17 @@ Global
 		{E0EC36BE-9E02-431D-A507-AB6B985D8880}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0EC36BE-9E02-431D-A507-AB6B985D8880}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0EC36BE-9E02-431D-A507-AB6B985D8880}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64274723-7F1A-49FC-9BB7-17CA9B0F491E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64274723-7F1A-49FC-9BB7-17CA9B0F491E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64274723-7F1A-49FC-9BB7-17CA9B0F491E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64274723-7F1A-49FC-9BB7-17CA9B0F491E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2754A81A-1B3C-43EE-84F0-468304A6C0E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2754A81A-1B3C-43EE-84F0-468304A6C0E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2754A81A-1B3C-43EE-84F0-468304A6C0E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2754A81A-1B3C-43EE-84F0-468304A6C0E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
