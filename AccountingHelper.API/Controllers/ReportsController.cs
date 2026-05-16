@@ -20,6 +20,7 @@ public class ReportsController : ControllerBase
     }
     
     [HttpGet("employees/count")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetEmployeeCount(CancellationToken ct=default)
     {
         var count = await _reportService.CountEmployees(ct);
@@ -27,6 +28,8 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("employees/{id:guid}/status")]
+    [ProducesResponseType(typeof(EmployeeStatus), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEmployeeStatus(Guid id, CancellationToken ct=default)
     {
         var employeeStatus = await _reportService.GetEmployeeStatus(id, ct);
@@ -35,6 +38,7 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("salaries")]
+    [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSalaries(CancellationToken ct=default)
     {
         var salaries = await _reportService.GetTotalSalaries(ct);
@@ -43,6 +47,9 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("employees/{id:guid}/salary")]
+    [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetSalaryByType(
         Guid id, 
         [FromQuery][Required] SalaryType type,
@@ -54,6 +61,9 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("employees/{id:guid}/taxes")]
+    [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CalculateTaxes(Guid id, CancellationToken ct=default)
     {
         var taxes = await _reportService.CalculateTaxes(id, ct);

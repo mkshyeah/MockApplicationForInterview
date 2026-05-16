@@ -21,6 +21,8 @@ public class EmployeesController : ControllerBase
     }
     
     [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<EmployeeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetEmployees(
         [FromQuery] EmployeeFilteredRequest request, 
         CancellationToken ct=default)
@@ -40,6 +42,8 @@ public class EmployeesController : ControllerBase
 
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEmployee(Guid id, CancellationToken ct=default)
     {
         var result = await _employeeService.GetEmployee(id, ct);
@@ -50,6 +54,10 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateEmployee(
         [FromBody] CreateEmployeeRequest request,
         CancellationToken ct=default)
@@ -61,6 +69,9 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/fire")]
+    [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> FireEmployee(Guid id, CancellationToken ct=default)
     {
         var result = await _employeeService.FireEmployee(id, ct);
