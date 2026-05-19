@@ -1,4 +1,6 @@
-﻿using AccountingHelper.Domain.Enums;
+﻿using AccountingHelper.Application.DTOs.Responses;
+using AccountingHelper.Domain.Enums;
+using AccountingHelper.Domain.Models;
 
 namespace AccountingHelper.Application.Interfaces;
 
@@ -12,4 +14,5 @@ public interface IReportService
     Task<decimal> GetSalaryByType(Guid employeeId, SalaryType type, CancellationToken ct);
 
     Task<decimal> CalculateTaxes(Guid employeeId, CancellationToken ct);
+
 }

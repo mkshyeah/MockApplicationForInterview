@@ -14,5 +14,11 @@ public interface IEmployeeService
 
     Task<Employee> FireEmployee(Guid id,CancellationToken ct);
     
+    Task<Employee> SendOnVacation(Guid id, CancellationToken ct);
+    
+    Task<Employee> SendOffVacation(Guid id, CancellationToken ct);
+    
     Task<int> CountEmployees(EmployeeFilteredRequest request, CancellationToken ct);
+    
+    
 }

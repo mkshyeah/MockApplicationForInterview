@@ -17,7 +17,9 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                sql => sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null)));
 
         services.AddScoped<IEmployeeService, EmployeeService>();
         services.AddScoped<IReportService, ReportService>();
@@ -26,6 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISalaryRepository, SalaryRepository>();
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
         services.AddScoped<IPositionRepository, PositionRepository>();
+        services.AddScoped<ISalaryService, SalaryService>();
 
         services.AddApiVersioning(options =>
             {

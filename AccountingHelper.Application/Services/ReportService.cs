@@ -2,6 +2,7 @@
 using AccountingHelper.Application.Interfaces;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
+using AccountingHelper.Domain.Models;
 
 namespace AccountingHelper.Application.Services;
 

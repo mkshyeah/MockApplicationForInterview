@@ -77,4 +77,24 @@ public class EmployeesController : ControllerBase
         var result = await _employeeService.FireEmployee(id, ct);
         return Ok(result.ToResponse());
     }
+
+    [HttpPatch("{id:guid}/on-vacation")]
+    [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SendOnVacation(Guid id, CancellationToken ct = default)
+    {
+        var result = await _employeeService.SendOnVacation(id, ct);
+        return Ok(result.ToResponse());
+    }
+    
+    [HttpPatch("{id:guid}/off-vacation")]
+    [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SendOffVacation(Guid id, CancellationToken ct = default)
+    {
+        var result = await _employeeService.SendOffVacation(id, ct);
+        return Ok(result.ToResponse());
+    }
 }

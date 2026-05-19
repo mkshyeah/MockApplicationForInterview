@@ -98,6 +98,50 @@ public class EmployeeService:IEmployeeService
         return employee;
     }
 
+    public async Task<Employee> SendOnVacation(Guid id, CancellationToken ct)
+    {
+        var employee = await _unitOfWork.Employees
+            .GetByIdAsync(id, ct);
+        
+        if (employee == null)
+            throw new NotFoundException($"Employee with id {id} not found");
+        
+        if(employee.Status == EmployeeStatus.Fired)
+            throw new ConflictException($"Cannot send fired employee on vacation");
+        
+        if (employee.Status == EmployeeStatus.OnVacation)
+            throw new ConflictException($"Employee with id {id} is already on vacation");
+
+        employee.Status = EmployeeStatus.OnVacation;
+        
+        _unitOfWork.Employees.Update(employee);
+        await _unitOfWork.SaveChangesAsync(ct);
+        
+        return employee;
+    }
+
+    public async Task<Employee> SendOffVacation(Guid id, CancellationToken ct)
+    {
+        var employee = await _unitOfWork.Employees
+            .GetByIdAsync(id, ct);
+        
+        if (employee == null)
+            throw new NotFoundException($"Employee with id {id} not found");
+        
+        if(employee.Status == EmployeeStatus.Fired)
+            throw new ConflictException($"Cannot send fired employee on vacation");
+        
+        if (employee.Status != EmployeeStatus.OnVacation)
+            throw new ConflictException($"Employee with id {id} isn't on vacation");
+
+        employee.Status = EmployeeStatus.Active;
+        
+        _unitOfWork.Employees.Update(employee);
+        await _unitOfWork.SaveChangesAsync(ct);
+        
+        return employee;
+    }
+
     public async Task<int> CountEmployees(EmployeeFilteredRequest request, CancellationToken ct)
     {
         return await _unitOfWork.Employees
