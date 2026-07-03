@@ -11,7 +11,7 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<DepartmentEntity
         builder.HasKey(e => e.Id);
         
         builder.Property(e => e.Id)
-            .HasDefaultValueSql("NEWID()");
+            .HasDefaultValueSql("gen_random_uuid()");
         
         builder.Property(e => e.Name)
             .IsRequired()
@@ -21,7 +21,7 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<DepartmentEntity
             .HasMaxLength(500);
         
         builder.Property(e => e.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
         
         builder.HasData(
             new DepartmentEntity

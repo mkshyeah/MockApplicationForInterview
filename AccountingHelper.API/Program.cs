@@ -1,16 +1,23 @@
 using AccountingHelper.API.Extensions;
-
+using AccountingHelper.Application.Extensions;
+using AccountingHelper.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Конфигурация и слои
 builder.Configuration.AddCustomConfiguration(builder.Environment);
 
-builder.Services.AddApplicationServices(builder.Configuration);
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services
+    .AddApiServices(builder.Configuration) // Локализация, Swagger и Контроллеры теперь внутри!
+    .AddInfrastructureServices(builder.Configuration)
+    .AddApplicationServices();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
+
+// Наш чистый метод автоматической миграции
+app.ApplyLocalMigrations(); 
 
 if (app.Environment.IsEnvironment("local"))
 {
@@ -18,7 +25,6 @@ if (app.Environment.IsEnvironment("local"))
     app.UseSwaggerUI();
 }
 
-app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();

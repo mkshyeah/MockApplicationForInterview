@@ -1,3 +1,5 @@
+using FluentValidation.Results;
+
 namespace AccountingHelper.Application.Exceptions;
 
 public class AccountingHelperException : Exception
@@ -23,5 +25,21 @@ public class ConflictException : AccountingHelperException
 
 public class ValidationException : AccountingHelperException
 {
-    public ValidationException(string message) : base(message,400) { }
+    public IEnumerable<ValidationFailure>? Failures { get; }
+
+    public ValidationException(string message) : base(message, 400)
+    {
+    }
+
+    public ValidationException(IEnumerable<ValidationFailure> failures)
+        : this(failures.ToList())
+    {
+    }
+
+    private ValidationException(List<ValidationFailure> cachedFailures)
+        : base(string.Join(";\n", cachedFailures.Select(f => $"{f.PropertyName}:{f.ErrorMessage}")), 400)
+    {
+        Failures = cachedFailures;
+    }
+
 }

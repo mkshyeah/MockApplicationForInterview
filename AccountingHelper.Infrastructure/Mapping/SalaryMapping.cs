@@ -19,8 +19,8 @@ public static class SalaryMapping
     {
         Id = model.Id,
         Amount = model.Amount,
-        EffectiveDate = model.EffectiveDate,
-        EndDate = model.EndDate,
+        EffectiveDate = model.EffectiveDate.ToUniversalTime(),
+        EndDate = model.EndDate?.ToUniversalTime(),
         Type = model.Type,
         EmployeeId = model.EmployeeId
     };
