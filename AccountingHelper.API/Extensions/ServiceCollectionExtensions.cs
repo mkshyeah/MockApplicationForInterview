@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 using AccountingHelper.API.Middleware;
+using AccountingHelper.Domain.Interfaces;
 using Asp.Versioning;
 using FluentValidation;
 
@@ -11,15 +12,12 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApiServices(this IServiceCollection services,
         IConfiguration configuration)
     {
-        // 1. Фиксируем локаль для FluentValidation strictly на en-US
         ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en-US");
-
-        // 2. Настраиваем контроллеры и конвертер энумов
+        
         services.AddControllers()
             .AddJsonOptions(options =>
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
-        // 3. Настройки Swagger
+        
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
         
@@ -39,6 +37,9 @@ public static class ServiceCollectionExtensions
 
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
+        
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICorrelationIdAccessor, CorrelationIdAccessor>();
         
         return services;
     }

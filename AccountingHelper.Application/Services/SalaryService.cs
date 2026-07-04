@@ -21,13 +21,13 @@ public class SalaryService : ISalaryService
             .GetByIdAsync(employeeId, ct);
         
         if (employee == null)
-            throw new NotFoundException($"Employee with id {employeeId} not found");
+            throw new NotFoundException("Employee", employeeId);
         
         if (employee.Status == EmployeeStatus.Fired)
-            throw new ConflictException($"Cannot change salary of fired employee with id {employeeId}");
+            throw new BusinessRuleException($"Cannot change salary of a fired employee with ID '{employeeId}'.");
         
         if (newSalary <= 0)
-            throw new ValidationException("Salary must be greater than 0");
+            throw new ValidationException(nameof(newSalary), "Salary must be greater than 0.");
 
         var currentSalary = await _unitOfWork.Salaries
             .GetCurrentSalaryAsync(employeeId, ct);
@@ -53,8 +53,9 @@ public class SalaryService : ISalaryService
     public async Task<IReadOnlyList<Salary>> GetSalaryHistory(Guid employeeId, CancellationToken ct)
     {
         var status = await _unitOfWork.Employees.GetStatusAsync(employeeId, ct);
+        
         if (status == null)
-            throw new NotFoundException($"Employee with id {employeeId} not found");
+            throw new NotFoundException("Employee", employeeId);
         
         var salaries = await _unitOfWork.Salaries
             .GetHistoryAsync(employeeId, ct);

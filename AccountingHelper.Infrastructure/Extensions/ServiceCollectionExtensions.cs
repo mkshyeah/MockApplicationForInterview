@@ -1,6 +1,7 @@
 ﻿using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Infrastructure.Contexts;
 using AccountingHelper.Infrastructure.Data.Repositories;
+using AccountingHelper.Infrastructure.Handlers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISalaryRepository, SalaryRepository>();
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
         services.AddScoped<IPositionRepository, PositionRepository>();
+        services.AddTransient<CorrelationIdDelegatingHandler>();
         
         return services;
     }

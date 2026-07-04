@@ -1,4 +1,5 @@
-﻿using AccountingHelper.Infrastructure.Contexts;
+﻿using AccountingHelper.API.Middleware;
+using AccountingHelper.Infrastructure.Contexts;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingHelper.API.Extensions;
