@@ -36,8 +36,8 @@ public class ReportService : IReportService
         var status = await _unitOfWork.Employees
             .GetStatusAsync(employeeId, ct);
         
-        if(!status.HasValue)
-           throw new NotFoundException($"Employee with id {employeeId} not found");
+        if (!status.HasValue)
+           throw new NotFoundException("Employee", employeeId);
         
         return status.Value;
     }

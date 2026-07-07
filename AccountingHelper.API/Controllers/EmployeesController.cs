@@ -74,10 +74,10 @@ public class EmployeesController : ControllerBase
         [FromServices] IValidator<CreateEmployeeRequest> validator,
         CancellationToken ct=default)
     {
-        var result = await validator.ValidateAsync(request);
+        var validationResult = await validator.ValidateAsync(request);
         
-        if (!result.IsValid)
-            throw new ValidationException(result.Errors);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
         
         var model = request.ToModel();
         var created = await _employeeService.CreateEmployee(model, ct);

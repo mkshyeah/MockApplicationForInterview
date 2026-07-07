@@ -8,15 +8,29 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AccountingHelper.Infrastructure.Extensions;
 
-public static class ServiceCollectionExtensions
+public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services,
         IConfiguration configuration)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
+        {
             options.UseNpgsql(
-                configuration.GetConnectionString("DefaultConnection"))
-                .UseSnakeCaseNamingConvention());
+                configuration.GetConnectionString("DefaultConnection"),
+                npgsqlOptions =>
+                {
+                    npgsqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(5),
+                        errorCodesToAdd: null);
+                });
+            options.UseSnakeCaseNamingConvention();
+        });
+        
+        services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>(
+                name: "database_context",
+                tags: ["database", "efcore", "live"]);
         
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
