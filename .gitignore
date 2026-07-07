@@ -124,6 +124,9 @@ $RECYCLE.BIN/
 *.db-shm
 *.db-wal
 
+## Claude
+CLAUDE.md
+
 ## Misc
 *.bak
 *.tmp
