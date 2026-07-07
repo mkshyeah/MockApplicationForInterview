@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "AccountingHelper API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5228" },
+    { "key": "activeEmployeeId", "value": "11111111-0000-0000-0000-000000000001" },
+    { "key": "firedEmployeeId", "value": "11111111-0000-0000-0000-000000000004" },
+    { "key": "onVacationEmployeeId", "value": "11111111-0000-0000-0000-000000000005" },
+    { "key": "departmentId", "value": "22222222-0000-0000-0000-000000000001" },
+    { "key": "positionId", "value": "33333333-0000-0000-0000-000000000001" }
+  ],
+  "item": [
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "GET all employees",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees?offset=0&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees"],
+              "query": [
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET all employees - invalid (limit=200)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees?offset=0&limit=200",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees"],
+              "query": [
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "200" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET employee by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/{{activeEmployeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "{{activeEmployeeId}}"]
+            }
+          }
+        },
+        {
+          "name": "GET employee by id - not found",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        },
+        {
+          "name": "POST create employee - valid",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"email\": \"test.user@contoso.kz\",\n  \"positionId\": \"33333333-0000-0000-0000-000000000001\",\n  \"salary\": 500000,\n  \"salaryType\": \"Monthly\",\n  \"departmentId\": \"22222222-0000-0000-0000-000000000001\",\n  \"hireDate\": \"2024-01-01T00:00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST create employee - invalid (empty fields)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"not-an-email\",\n  \"positionId\": \"00000000-0000-0000-0000-000000000000\",\n  \"salary\": 0,\n  \"salaryType\": \"Monthly\",\n  \"departmentId\": \"00000000-0000-0000-0000-000000000000\",\n  \"hireDate\": \"2024-01-01T00:00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST create employee - duplicate email (409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Aigerim\",\n  \"lastName\": \"Nurlanova\",\n  \"email\": \"aigerim.nurlanova@contoso.kz\",\n  \"positionId\": \"33333333-0000-0000-0000-000000000001\",\n  \"salary\": 500000,\n  \"salaryType\": \"Monthly\",\n  \"departmentId\": \"22222222-0000-0000-0000-000000000001\",\n  \"hireDate\": \"2024-01-01T00:00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH fire employee - active (200)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/{{activeEmployeeId}}/fire",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "{{activeEmployeeId}}", "fire"]
+            }
+          }
+        },
+        {
+          "name": "PATCH fire employee - already fired (409)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/{{firedEmployeeId}}/fire",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "{{firedEmployeeId}}", "fire"]
+            }
+          }
+        },
+        {
+          "name": "PATCH on-vacation (200)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/{{activeEmployeeId}}/on-vacation",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "{{activeEmployeeId}}", "on-vacation"]
+            }
+          }
+        },
+        {
+          "name": "PATCH off-vacation (200)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/{{onVacationEmployeeId}}/off-vacation",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "{{onVacationEmployeeId}}", "off-vacation"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Salaries",
+      "item": [
+        {
+          "name": "PUT change salary - valid",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/{{activeEmployeeId}}/salaries",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "{{activeEmployeeId}}", "salaries"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 750000,\n  \"salaryType\": \"Monthly\"\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT change salary - invalid amount (400)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/{{activeEmployeeId}}/salaries",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "{{activeEmployeeId}}", "salaries"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 0,\n  \"salaryType\": \"Monthly\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET salary history",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/employees/{{activeEmployeeId}}/salaries",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "employees", "{{activeEmployeeId}}", "salaries"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reporting",
+      "item": [
+        {
+          "name": "GET employee count",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/reporting/employees/count",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reporting", "employees", "count"]
+            }
+          }
+        },
+        {
+          "name": "GET employee status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/reporting/employees/{{activeEmployeeId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reporting", "employees", "{{activeEmployeeId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "GET total salaries",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/reporting/salaries",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reporting", "salaries"]
+            }
+          }
+        },
+        {
+          "name": "GET salary by type (Monthly)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/reporting/employees/{{activeEmployeeId}}/salary?type=Monthly",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reporting", "employees", "{{activeEmployeeId}}", "salary"],
+              "query": [{ "key": "type", "value": "Monthly" }]
+            }
+          }
+        },
+        {
+          "name": "GET taxes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/reporting/employees/{{activeEmployeeId}}/taxes",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "reporting", "employees", "{{activeEmployeeId}}", "taxes"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

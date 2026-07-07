@@ -16,6 +16,29 @@ public class GlobalExceptionHandler : IExceptionHandler
     public async ValueTask<bool> TryHandleAsync(
         HttpContext context, Exception exception, CancellationToken ct)
     {
+        if (exception is ValidationException validationException)
+        {
+            _logger.LogWarning(exception, "Validation exception: {Message}", validationException.Message);
+            
+            var errorsDictionary = validationException.Failures?
+                                       .GroupBy(failure => failure.PropertyName)
+                                       .ToDictionary(
+                                           group => group.Key,
+                                           group => group.Select(f => f.ErrorMessage).ToArray()) 
+                                   ?? new Dictionary<string, string[]>();
+            
+            context.Response.StatusCode = validationException.StatusCode;
+
+            await context.Response.WriteAsJsonAsync(new ValidationProblemDetails
+            {
+                Status = validationException.StatusCode,
+                Errors = errorsDictionary,
+                Type = "https://tools.ietf.org/html/rfc7807"
+            }, ct);
+            
+            return true;
+        }
+        
         if (exception is AccountingHelperException appException)
         {
             _logger.LogWarning(exception, "Application exception: {Message}", exception.Message);
@@ -31,6 +54,8 @@ public class GlobalExceptionHandler : IExceptionHandler
             
             return true;
         }
+
+        
         
         _logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
         

@@ -30,8 +30,8 @@ public static class EmployeeMapping
         DepartmentId = model.DepartmentId,
         PositionId = model.PositionId,
         Salaries = model.Salaries.Select(e => e.ToEntity()).ToList(),
-        HireDate = model.HireDate,
-        TerminationDate = model.TerminationDate,
+        HireDate = model.HireDate.ToUniversalTime(),
+        TerminationDate = model.TerminationDate?.ToUniversalTime(),
         Status = model.Status
     };
 }

@@ -12,7 +12,7 @@ public class PositionConfiguration : IEntityTypeConfiguration<PositionEntity>
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasDefaultValueSql("NEWID()");
+            .HasDefaultValueSql("gen_random_uuid()");
 
         builder.Property(e => e.Title)
             .IsRequired()
@@ -22,7 +22,7 @@ public class PositionConfiguration : IEntityTypeConfiguration<PositionEntity>
             .HasConversion<string>();
 
         builder.Property(e => e.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.HasData(
             new PositionEntity { Id = new Guid("33333333-0000-0000-0000-000000000001"), Title = "Senior Software Engineer", Grade = EmployeeGrade.Senior, CreatedAt = new DateTime(2019, 1, 1, 0, 0, 0, DateTimeKind.Utc) },

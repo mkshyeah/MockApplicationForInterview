@@ -54,7 +54,7 @@ public class EmployeeRepository : IEmployeeRepository
    {
       var entity = model.ToEntity();
       entity.UpdatedAt = DateTime.UtcNow;
-      _dbContext.Employees.Update(entity);
+      _dbContext.Entry(entity).State = EntityState.Modified;
    }
    
    public async Task DeleteAsync(Guid id, CancellationToken ct)

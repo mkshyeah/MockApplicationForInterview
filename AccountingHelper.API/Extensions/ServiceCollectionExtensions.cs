@@ -1,35 +1,28 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 using AccountingHelper.API.Middleware;
-using AccountingHelper.Application.Interfaces;
-using AccountingHelper.Application.Services;
-using AccountingHelper.Domain.Interfaces;
-using AccountingHelper.Infrastructure.Contexts;
-using AccountingHelper.Infrastructure.Data.Repositories;
-using AccountingHelper.Infrastructure.UnitOfWork;
 using Asp.Versioning;
-using Microsoft.EntityFrameworkCore;
+using FluentValidation;
 
 namespace AccountingHelper.API.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services,
+    public static IServiceCollection AddApiServices(this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
-                sql => sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null)));
+        // 1. Фиксируем локаль для FluentValidation strictly на en-US
+        ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en-US");
 
-        services.AddScoped<IEmployeeService, EmployeeService>();
-        services.AddScoped<IReportService, ReportService>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-        services.AddScoped<ISalaryRepository, SalaryRepository>();
-        services.AddScoped<IDepartmentRepository, DepartmentRepository>();
-        services.AddScoped<IPositionRepository, PositionRepository>();
-        services.AddScoped<ISalaryService, SalaryService>();
+        // 2. Настраиваем контроллеры и конвертер энумов
+        services.AddControllers()
+            .AddJsonOptions(options =>
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+        // 3. Настройки Swagger
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen();
+        
         services.AddApiVersioning(options =>
             {
                 options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -42,10 +35,6 @@ public static class ServiceCollectionExtensions
                 options.SubstituteApiVersionInUrl = true;
             });
 
-        services.AddControllers()
-            .AddJsonOptions(options =>
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
         services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
         services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -54,7 +43,8 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static void AddCustomConfiguration(this IConfigurationBuilder configuration,
+    public static IConfigurationBuilder AddCustomConfiguration(
+        this IConfigurationBuilder configuration,
         IWebHostEnvironment environment)
     {
         configuration
@@ -64,8 +54,13 @@ public static class ServiceCollectionExtensions
         if (environment.IsEnvironment("local"))
         {
             configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+            
+            configuration.AddUserSecrets<Program>();
         }
         
         configuration.AddEnvironmentVariables();
+
+        return configuration;
     }
+    
 }

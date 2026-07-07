@@ -3,8 +3,8 @@ using System;
 using AccountingHelper.Infrastructure.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -17,38 +17,44 @@ namespace AccountingHelper.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.26")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("ProductVersion", "8.0.28")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.DepartmentEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_departments");
 
-                    b.ToTable("Departments");
+                    b.ToTable("departments", (string)null);
 
                     b.HasData(
                         new
@@ -75,55 +81,69 @@ namespace AccountingHelper.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DepartmentId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid")
+                        .HasColumnName("department_id");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("email");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("first_name");
 
                     b.Property<DateTime>("HireDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hire_date");
 
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_name");
 
                     b.Property<Guid>("PositionId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid")
+                        .HasColumnName("position_id");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text")
+                        .HasColumnName("status");
 
                     b.Property<DateTime?>("TerminationDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("termination_date");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_employees");
 
-                    b.HasIndex("DepartmentId");
+                    b.HasIndex("DepartmentId")
+                        .HasDatabaseName("ix_employees_department_id");
 
-                    b.HasIndex("PositionId");
+                    b.HasIndex("PositionId")
+                        .HasDatabaseName("ix_employees_position_id");
 
-                    b.ToTable("Employees");
+                    b.ToTable("employees", (string)null);
 
                     b.HasData(
                         new
@@ -133,7 +153,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             DepartmentId = new Guid("22222222-0000-0000-0000-000000000001"),
                             Email = "aigerim.nurlanova@contoso.kz",
                             FirstName = "Aigerim",
-                            HireDate = new DateTime(2021, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            HireDate = new DateTime(2021, 3, 15, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Nurlanova",
                             PositionId = new Guid("33333333-0000-0000-0000-000000000001"),
                             Status = "Active"
@@ -145,7 +165,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             DepartmentId = new Guid("22222222-0000-0000-0000-000000000001"),
                             Email = "daniyar.akhmetov@contoso.kz",
                             FirstName = "Daniyar",
-                            HireDate = new DateTime(2019, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            HireDate = new DateTime(2019, 8, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Akhmetov",
                             PositionId = new Guid("33333333-0000-0000-0000-000000000002"),
                             Status = "Active"
@@ -157,7 +177,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             DepartmentId = new Guid("22222222-0000-0000-0000-000000000002"),
                             Email = "madina.serikova@contoso.kz",
                             FirstName = "Madina",
-                            HireDate = new DateTime(2022, 1, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            HireDate = new DateTime(2022, 1, 10, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Serikova",
                             PositionId = new Guid("33333333-0000-0000-0000-000000000003"),
                             Status = "Active"
@@ -169,11 +189,11 @@ namespace AccountingHelper.Infrastructure.Migrations
                             DepartmentId = new Guid("22222222-0000-0000-0000-000000000001"),
                             Email = "yerlan.tursynov@contoso.kz",
                             FirstName = "Yerlan",
-                            HireDate = new DateTime(2020, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            HireDate = new DateTime(2020, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Tursynov",
                             PositionId = new Guid("33333333-0000-0000-0000-000000000004"),
                             Status = "Fired",
-                            TerminationDate = new DateTime(2024, 11, 30, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            TerminationDate = new DateTime(2024, 11, 30, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -182,7 +202,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             DepartmentId = new Guid("22222222-0000-0000-0000-000000000003"),
                             Email = "aliya.bekova@contoso.kz",
                             FirstName = "Aliya",
-                            HireDate = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            HireDate = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Bekova",
                             PositionId = new Guid("33333333-0000-0000-0000-000000000005"),
                             Status = "OnVacation"
@@ -194,7 +214,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             DepartmentId = new Guid("22222222-0000-0000-0000-000000000001"),
                             Email = "ruslan.iskakov@contoso.kz",
                             FirstName = "Ruslan",
-                            HireDate = new DateTime(2021, 11, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            HireDate = new DateTime(2021, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
                             LastName = "Iskakov",
                             PositionId = new Guid("33333333-0000-0000-0000-000000000006"),
                             Status = "Active"
@@ -205,32 +225,39 @@ namespace AccountingHelper.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
                     b.Property<string>("Grade")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text")
+                        .HasColumnName("grade");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("title");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_positions");
 
-                    b.ToTable("Positions");
+                    b.ToTable("positions", (string)null);
 
                     b.HasData(
                         new
@@ -281,39 +308,49 @@ namespace AccountingHelper.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("EffectiveDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_date");
 
                     b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
 
                     b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text")
+                        .HasColumnName("type");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
-                    b.HasKey("Id");
+                    b.HasKey("Id")
+                        .HasName("pk_salaries");
 
-                    b.HasIndex("EmployeeId");
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_salaries_employee_id");
 
-                    b.ToTable("Salaries");
+                    b.ToTable("salaries", (string)null);
 
                     b.HasData(
                         new
@@ -321,7 +358,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             Id = new Guid("44444444-0000-0000-0000-000000000001"),
                             Amount = 850000m,
                             CreatedAt = new DateTime(2021, 3, 15, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveDate = new DateTime(2021, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            EffectiveDate = new DateTime(2021, 3, 15, 0, 0, 0, 0, DateTimeKind.Utc),
                             EmployeeId = new Guid("11111111-0000-0000-0000-000000000001"),
                             Type = "Monthly"
                         },
@@ -330,7 +367,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             Id = new Guid("44444444-0000-0000-0000-000000000002"),
                             Amount = 1200000m,
                             CreatedAt = new DateTime(2019, 8, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveDate = new DateTime(2019, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            EffectiveDate = new DateTime(2019, 8, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             EmployeeId = new Guid("11111111-0000-0000-0000-000000000002"),
                             Type = "Monthly"
                         },
@@ -339,7 +376,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             Id = new Guid("44444444-0000-0000-0000-000000000003"),
                             Amount = 700000m,
                             CreatedAt = new DateTime(2022, 1, 10, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveDate = new DateTime(2022, 1, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            EffectiveDate = new DateTime(2022, 1, 10, 0, 0, 0, 0, DateTimeKind.Utc),
                             EmployeeId = new Guid("11111111-0000-0000-0000-000000000003"),
                             Type = "Monthly"
                         },
@@ -348,7 +385,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             Id = new Guid("44444444-0000-0000-0000-000000000004"),
                             Amount = 550000m,
                             CreatedAt = new DateTime(2020, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveDate = new DateTime(2020, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            EffectiveDate = new DateTime(2020, 5, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             EmployeeId = new Guid("11111111-0000-0000-0000-000000000004"),
                             Type = "Monthly"
                         },
@@ -357,7 +394,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             Id = new Guid("44444444-0000-0000-0000-000000000005"),
                             Amount = 600000m,
                             CreatedAt = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveDate = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            EffectiveDate = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             EmployeeId = new Guid("11111111-0000-0000-0000-000000000005"),
                             Type = "Monthly"
                         },
@@ -366,7 +403,7 @@ namespace AccountingHelper.Infrastructure.Migrations
                             Id = new Guid("44444444-0000-0000-0000-000000000006"),
                             Amount = 900000m,
                             CreatedAt = new DateTime(2021, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
-                            EffectiveDate = new DateTime(2021, 11, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            EffectiveDate = new DateTime(2021, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
                             EmployeeId = new Guid("11111111-0000-0000-0000-000000000006"),
                             Type = "Monthly"
                         });
@@ -378,13 +415,15 @@ namespace AccountingHelper.Infrastructure.Migrations
                         .WithMany("Employees")
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_employees_departments_department_id");
 
                     b.HasOne("AccountingHelper.Infrastructure.Data.Entities.PositionEntity", "Position")
                         .WithMany("Employees")
                         .HasForeignKey("PositionId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_employees_positions_position_id");
 
                     b.Navigation("Department");
 
@@ -397,7 +436,8 @@ namespace AccountingHelper.Infrastructure.Migrations
                         .WithMany("Salaries")
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_salaries_employees_employee_id");
 
                     b.Navigation("Employee");
                 });
