@@ -54,15 +54,15 @@ public class ReportService : IReportService
             .GetCurrentSalaryAsync(employeeId, ct);
         
         if (salary == null)
-            throw new NotFoundException($"No active salary found for employee with id {employeeId}");
-        
+            throw new NotFoundException("Employee Salary", employeeId);
+    
         var annualSalary = salary.Type switch
         {
             SalaryType.Hourly => salary.Amount * HoursInYear,
             SalaryType.Daily => salary.Amount * DaysInYear,
             SalaryType.Weekly => salary.Amount * WeeksInYear,
             SalaryType.Monthly => salary.Amount * MonthsInYear,
-            _ => throw new ValidationException("Invalid salary type")
+            _ => throw new BusinessRuleException($"Unsupported current salary type: {salary.Type}")
         };
 
         return type switch
@@ -71,7 +71,7 @@ public class ReportService : IReportService
             SalaryType.Daily => annualSalary / DaysInYear,
             SalaryType.Weekly => annualSalary / WeeksInYear,
             SalaryType.Monthly => annualSalary / MonthsInYear,
-            _ => throw new ValidationException("Invalid salary type")
+            _ => throw new BusinessRuleException($"Requested salary type is invalid: {type}")
         };
     }
     
@@ -79,9 +79,9 @@ public class ReportService : IReportService
     {
         var salary = await _unitOfWork.Salaries
             .GetCurrentSalaryAsync(employeeId, ct);
-
+        
         if (salary == null)
-            throw new NotFoundException($"No active salary found for employee with id {employeeId}");
+            throw new NotFoundException("Employee Salary", employeeId);
 
         var monthlyAmount = salary.Type switch
         {
@@ -89,7 +89,7 @@ public class ReportService : IReportService
             SalaryType.Hourly  => salary.Amount * HoursInYear / MonthsInYear,
             SalaryType.Daily   => salary.Amount * DaysInYear  / MonthsInYear,
             SalaryType.Weekly  => salary.Amount * WeeksInYear / MonthsInYear,
-            _ => throw new ValidationException("Invalid salary type")
+            _ => throw new BusinessRuleException($"Unsupported salary type: {salary.Type}")
         };
 
         return monthlyAmount switch
