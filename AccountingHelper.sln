@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.Applicatio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.Infrastructure", "AccountingHelper.Infrastructure\AccountingHelper.Infrastructure.csproj", "{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.UnitTests", "AccountingHelper.UnitTests\AccountingHelper.UnitTests.csproj", "{8C69754B-AE3D-4B94-8354-F6FE1C88B8E4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C16DDDF6-14F3-43CE-B54D-D0C3DB0E82E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C69754B-AE3D-4B94-8354-F6FE1C88B8E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C69754B-AE3D-4B94-8354-F6FE1C88B8E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C69754B-AE3D-4B94-8354-F6FE1C88B8E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C69754B-AE3D-4B94-8354-F6FE1C88B8E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
