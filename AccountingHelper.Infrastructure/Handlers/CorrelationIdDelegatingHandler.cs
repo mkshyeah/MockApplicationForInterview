@@ -19,7 +19,7 @@ public class CorrelationIdDelegatingHandler : DelegatingHandler
     {
         var correlationId = _correlationIdAccessor.CorrelationId;
 
-        if (string.IsNullOrEmpty(correlationId))
+        if (!string.IsNullOrEmpty(correlationId))
         {
             request.Headers.TryAddWithoutValidation(CorrelationIdHeader, correlationId);
         }

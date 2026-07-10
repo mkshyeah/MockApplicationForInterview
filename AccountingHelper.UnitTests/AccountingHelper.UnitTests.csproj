@@ -11,7 +11,9 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="FluentAssertions" Version="8.10.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
   </ItemGroup>
@@ -21,9 +23,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Application\" />
-    <Folder Include="Domain\Entities\" />
     <Folder Include="Infrastructure\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AccountingHelper.Application\AccountingHelper.Application.csproj" />
+    <ProjectReference Include="..\AccountingHelper.Domain\AccountingHelper.Domain.csproj" />
+    <ProjectReference Include="..\AccountingHelper.Infrastructure\AccountingHelper.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

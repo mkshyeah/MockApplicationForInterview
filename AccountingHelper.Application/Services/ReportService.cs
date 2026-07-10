@@ -56,23 +56,7 @@ public class ReportService : IReportService
         if (salary == null)
             throw new NotFoundException("Employee Salary", employeeId);
     
-        var annualSalary = salary.Type switch
-        {
-            SalaryType.Hourly => salary.Amount * HoursInYear,
-            SalaryType.Daily => salary.Amount * DaysInYear,
-            SalaryType.Weekly => salary.Amount * WeeksInYear,
-            SalaryType.Monthly => salary.Amount * MonthsInYear,
-            _ => throw new BusinessRuleException($"Unsupported current salary type: {salary.Type}")
-        };
-
-        return type switch
-        {
-            SalaryType.Hourly => annualSalary / HoursInYear,
-            SalaryType.Daily => annualSalary / DaysInYear,
-            SalaryType.Weekly => annualSalary / WeeksInYear,
-            SalaryType.Monthly => annualSalary / MonthsInYear,
-            _ => throw new BusinessRuleException($"Requested salary type is invalid: {type}")
-        };
+        return salary.ConvertTo(type);
     }
     
     public async Task<decimal> CalculateTaxes(Guid employeeId, CancellationToken ct)
@@ -83,20 +67,6 @@ public class ReportService : IReportService
         if (salary == null)
             throw new NotFoundException("Employee Salary", employeeId);
 
-        var monthlyAmount = salary.Type switch
-        {
-            SalaryType.Monthly => salary.Amount,
-            SalaryType.Hourly  => salary.Amount * HoursInYear / MonthsInYear,
-            SalaryType.Daily   => salary.Amount * DaysInYear  / MonthsInYear,
-            SalaryType.Weekly  => salary.Amount * WeeksInYear / MonthsInYear,
-            _ => throw new BusinessRuleException($"Unsupported salary type: {salary.Type}")
-        };
-
-        return monthlyAmount switch
-        {
-            <= LowTaxBracket  => monthlyAmount * LowTaxRate,
-            <= HighTaxBracket => monthlyAmount * MidTaxRate,
-            _                 => monthlyAmount * HighTaxRate
-        };
+        return salary.CalculateTaxes();
     }
 }
