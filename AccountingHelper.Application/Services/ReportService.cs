@@ -8,17 +8,6 @@ namespace AccountingHelper.Application.Services;
 
 public class ReportService : IReportService
 {
-    private const int HoursInYear   = 2080;
-    private const int MonthsInYear  = 12;
-    private const int WeeksInYear   = 52;
-    private const int DaysInYear    = 365;
-  
-    private const decimal LowTaxBracket  = 600_000m;
-    private const decimal HighTaxBracket = 800_000m;
-    private const decimal LowTaxRate     = 0.10m;
-    private const decimal MidTaxRate     = 0.20m;
-    private const decimal HighTaxRate    = 0.30m;
-    
     private readonly IUnitOfWork _unitOfWork;
 
     public ReportService(IUnitOfWork unitOfWork)
