@@ -88,7 +88,7 @@ public class EmployeesController : ControllerBase
     [HttpPatch("{id:guid}/fire")]
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> FireEmployee(Guid id, CancellationToken ct=default)
     {
         var result = await _employeeService.FireEmployee(id, ct);
@@ -98,7 +98,7 @@ public class EmployeesController : ControllerBase
     [HttpPatch("{id:guid}/on-vacation")]
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> SendOnVacation(Guid id, CancellationToken ct = default)
     {
         var result = await _employeeService.SendOnVacation(id, ct);
@@ -108,7 +108,7 @@ public class EmployeesController : ControllerBase
     [HttpPatch("{id:guid}/off-vacation")]
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> SendOffVacation(Guid id, CancellationToken ct = default)
     {
         var result = await _employeeService.SendOffVacation(id, ct);

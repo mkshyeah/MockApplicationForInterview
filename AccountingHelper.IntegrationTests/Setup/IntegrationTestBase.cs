@@ -1,7 +1,11 @@
+using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Infrastructure.Contexts;
 using AccountingHelper.Infrastructure.Data.Entities;
+using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -74,5 +78,30 @@ public abstract class IntegrationTestBase : IAsyncLifetime
  
             return (department.Id, position.Id);
         });
+    }
+    
+    protected async Task<EmployeeResponse> CreateEmployeeAsync(
+        Guid departmentId,
+        Guid positionId,
+        decimal salary = 1000m,
+        string salaryType = "Monthly",
+        string hireDate = "2026-01-01T00:00:00Z",
+        string firstName = "Emp",
+        string lastName = "Test",
+        string? email = null)
+    {
+        email ??= $"{Guid.NewGuid():N}@test.com";
+ 
+        var resp = await Client.PostAsJsonAsync("v1/employees", new
+        {
+            firstName, lastName, email,
+            departmentId, positionId,
+            salary, salaryType, hireDate
+        });
+ 
+        resp.StatusCode.Should().Be(HttpStatusCode.Created);
+ 
+        var body = await resp.Content.ReadFromJsonAsync<EmployeeResponse>(Json);
+        return body!;
     }
 }
