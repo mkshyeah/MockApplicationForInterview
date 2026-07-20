@@ -80,7 +80,7 @@ public class EmployeeRepository : IEmployeeRepository
    {
       return await _dbContext.Employees
          .Where(e => e.Id == employeeId)
-         .Select(e => e.Status)
+         .Select(e => (EmployeeStatus?)e.Status)
          .FirstOrDefaultAsync(ct);
    }
 

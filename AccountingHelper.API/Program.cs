@@ -109,6 +109,10 @@ static Task WriteHealthCheckResponse(HttpContext context, HealthReport report)
         }));
 }
 
+namespace AccountingHelper.API
+{
+    public partial class Program{ }
+}
 
 
 

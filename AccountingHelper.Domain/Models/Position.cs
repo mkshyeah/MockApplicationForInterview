@@ -4,7 +4,7 @@ namespace AccountingHelper.Domain.Models;
 
 public class Position
 {
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
     public required string Title { get; set; }
     public string?  Description { get; set; }
     public required EmployeeGrade Grade { get; set; }
