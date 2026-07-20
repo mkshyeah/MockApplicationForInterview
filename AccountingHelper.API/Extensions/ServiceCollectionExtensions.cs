@@ -1,8 +1,7 @@
-using System.Globalization;
 using System.Text.Json.Serialization;
 using AccountingHelper.API.Middleware;
+using AccountingHelper.Domain.Interfaces;
 using Asp.Versioning;
-using FluentValidation;
 
 namespace AccountingHelper.API.Extensions;
 
@@ -11,15 +10,13 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApiServices(this IServiceCollection services,
         IConfiguration configuration)
     {
-        // 1. Фиксируем локаль для FluentValidation strictly на en-US
-        ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en-US");
+        var connectionString = configuration.GetConnectionString("DefaultConnection") 
+                               ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-        // 2. Настраиваем контроллеры и конвертер энумов
         services.AddControllers()
             .AddJsonOptions(options =>
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
-        // 3. Настройки Swagger
+        
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
         
@@ -40,6 +37,17 @@ public static class ServiceCollectionExtensions
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
         
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICorrelationIdAccessor, CorrelationIdAccessor>();
+
+        services.AddHealthChecks()
+            .AddNpgSql(
+                connectionString: connectionString,
+                name: "postgresql",
+                tags: ["database", "postgres", "live"]);
+        
+        
+        
         return services;
     }
 
@@ -47,18 +55,11 @@ public static class ServiceCollectionExtensions
         this IConfigurationBuilder configuration,
         IWebHostEnvironment environment)
     {
-        configuration
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-        
         if (environment.IsEnvironment("local"))
         {
             configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
-            
             configuration.AddUserSecrets<Program>();
         }
-        
-        configuration.AddEnvironmentVariables();
 
         return configuration;
     }

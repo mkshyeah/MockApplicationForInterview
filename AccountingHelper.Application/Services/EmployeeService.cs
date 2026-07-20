@@ -4,16 +4,19 @@ using AccountingHelper.Application.Interfaces;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
+using Microsoft.Extensions.Logging;
 
 namespace AccountingHelper.Application.Services;
 
 public class EmployeeService:IEmployeeService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<EmployeeService> _logger;
 
-    public EmployeeService(IUnitOfWork unitOfWork)
+    public EmployeeService(IUnitOfWork unitOfWork, ILogger<EmployeeService> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
     
     public async Task<IReadOnlyList<Employee>> GetEmployees(EmployeeFilteredRequest request , CancellationToken ct )
@@ -34,9 +37,9 @@ public class EmployeeService:IEmployeeService
     {
         var employee = await _unitOfWork.Employees
             .GetByIdAsync(id, ct);
-
+        
         if (employee == null)
-            throw new NotFoundException($"Employee with id {id} not found");
+            throw new NotFoundException("Employee", id);
 
         return employee;
     }
@@ -47,18 +50,16 @@ public class EmployeeService:IEmployeeService
             .ExistsByEmailAsync(employee.Email, ct);
         
         if (exists)
-            throw new ConflictException($"Employee with email {employee.Email} already exists");
+            throw new ConflictException($"Employee with email '{employee.Email}' already exists.");
         
         var department = await _unitOfWork.Departments.GetByIdAsync(employee.DepartmentId, ct);
         if (department == null)
-            throw new NotFoundException($"Department with id {employee.DepartmentId} not found");
+            throw new NotFoundException("Department", employee.DepartmentId);
         
         var position = await _unitOfWork.Positions.GetByIdAsync(employee.PositionId, ct);
         if (position is null)
-            throw new NotFoundException($"Position with id {employee.PositionId} not found");
+            throw new NotFoundException("Position", employee.PositionId);
 
-        
-        
         employee.Id = Guid.NewGuid();
         employee.Status = EmployeeStatus.Active;
 
@@ -80,10 +81,10 @@ public class EmployeeService:IEmployeeService
             .GetByIdAsync(id, ct);
         
         if (employee == null)
-            throw new NotFoundException($"Employee with id {id} not found");
-
+            throw new NotFoundException("Employee", id);
+        
         if (employee.Status == EmployeeStatus.Fired)
-            throw new ConflictException($"Employee with id {id} is already fired");
+            throw new BusinessRuleException($"Employee with ID '{id}' is already fired.");
         
         var currentSalary = await _unitOfWork.Salaries.GetCurrentSalaryAsync(id, ct);
         if (currentSalary != null)
@@ -94,6 +95,8 @@ public class EmployeeService:IEmployeeService
         
         _unitOfWork.Employees.Update(employee);
         await _unitOfWork.SaveChangesAsync(ct);
+        
+        _logger.LogInformation("Employee {EmployeeId} was successfully fired. Associated active salary was closed.", id);
 
         return employee;
     }
@@ -104,13 +107,13 @@ public class EmployeeService:IEmployeeService
             .GetByIdAsync(id, ct);
         
         if (employee == null)
-            throw new NotFoundException($"Employee with id {id} not found");
+            throw new NotFoundException("Employee", id);
         
         if(employee.Status == EmployeeStatus.Fired)
-            throw new ConflictException($"Cannot send fired employee on vacation");
+            throw new BusinessRuleException("Cannot send a fired employee on vacation.");
         
         if (employee.Status == EmployeeStatus.OnVacation)
-            throw new ConflictException($"Employee with id {id} is already on vacation");
+            throw new BusinessRuleException($"Employee with ID '{id}' is already on vacation.");
 
         employee.Status = EmployeeStatus.OnVacation;
         
@@ -126,13 +129,13 @@ public class EmployeeService:IEmployeeService
             .GetByIdAsync(id, ct);
         
         if (employee == null)
-            throw new NotFoundException($"Employee with id {id} not found");
+            throw new NotFoundException("Employee", id);
         
         if(employee.Status == EmployeeStatus.Fired)
-            throw new ConflictException($"Cannot send fired employee on vacation");
+            throw new BusinessRuleException("Cannot process vacation status for a fired employee.");
         
         if (employee.Status != EmployeeStatus.OnVacation)
-            throw new ConflictException($"Employee with id {id} isn't on vacation");
+            throw new BusinessRuleException($"Employee with ID '{id}' is not currently on vacation.");
 
         employee.Status = EmployeeStatus.Active;
         
