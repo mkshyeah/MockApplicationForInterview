@@ -8,17 +8,6 @@ namespace AccountingHelper.Application.Services;
 
 public class ReportService : IReportService
 {
-    private const int HoursInYear   = 2080;
-    private const int MonthsInYear  = 12;
-    private const int WeeksInYear   = 52;
-    private const int DaysInYear    = 365;
-  
-    private const decimal LowTaxBracket  = 600_000m;
-    private const decimal HighTaxBracket = 800_000m;
-    private const decimal LowTaxRate     = 0.10m;
-    private const decimal MidTaxRate     = 0.20m;
-    private const decimal HighTaxRate    = 0.30m;
-    
     private readonly IUnitOfWork _unitOfWork;
 
     public ReportService(IUnitOfWork unitOfWork)
@@ -36,8 +25,8 @@ public class ReportService : IReportService
         var status = await _unitOfWork.Employees
             .GetStatusAsync(employeeId, ct);
         
-        if(!status.HasValue)
-           throw new NotFoundException($"Employee with id {employeeId} not found");
+        if (!status.HasValue)
+           throw new NotFoundException("Employee", employeeId);
         
         return status.Value;
     }
@@ -56,23 +45,7 @@ public class ReportService : IReportService
         if (salary == null)
             throw new NotFoundException("Employee Salary", employeeId);
     
-        var annualSalary = salary.Type switch
-        {
-            SalaryType.Hourly => salary.Amount * HoursInYear,
-            SalaryType.Daily => salary.Amount * DaysInYear,
-            SalaryType.Weekly => salary.Amount * WeeksInYear,
-            SalaryType.Monthly => salary.Amount * MonthsInYear,
-            _ => throw new BusinessRuleException($"Unsupported current salary type: {salary.Type}")
-        };
-
-        return type switch
-        {
-            SalaryType.Hourly => annualSalary / HoursInYear,
-            SalaryType.Daily => annualSalary / DaysInYear,
-            SalaryType.Weekly => annualSalary / WeeksInYear,
-            SalaryType.Monthly => annualSalary / MonthsInYear,
-            _ => throw new BusinessRuleException($"Requested salary type is invalid: {type}")
-        };
+        return salary.ConvertTo(type);
     }
     
     public async Task<decimal> CalculateTaxes(Guid employeeId, CancellationToken ct)
@@ -83,20 +56,6 @@ public class ReportService : IReportService
         if (salary == null)
             throw new NotFoundException("Employee Salary", employeeId);
 
-        var monthlyAmount = salary.Type switch
-        {
-            SalaryType.Monthly => salary.Amount,
-            SalaryType.Hourly  => salary.Amount * HoursInYear / MonthsInYear,
-            SalaryType.Daily   => salary.Amount * DaysInYear  / MonthsInYear,
-            SalaryType.Weekly  => salary.Amount * WeeksInYear / MonthsInYear,
-            _ => throw new BusinessRuleException($"Unsupported salary type: {salary.Type}")
-        };
-
-        return monthlyAmount switch
-        {
-            <= LowTaxBracket  => monthlyAmount * LowTaxRate,
-            <= HighTaxBracket => monthlyAmount * MidTaxRate,
-            _                 => monthlyAmount * HighTaxRate
-        };
+        return salary.CalculateTaxes();
     }
 }

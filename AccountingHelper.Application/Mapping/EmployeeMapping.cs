@@ -36,6 +36,7 @@ public static class EmployeeMapping
         [
             new Salary
             {
+                EmployeeId = Guid.Empty,
                 Amount = request.Salary,
                 Type = request.SalaryType,
                 EffectiveDate = request.HireDate

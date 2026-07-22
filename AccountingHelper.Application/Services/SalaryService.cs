@@ -3,16 +3,19 @@ using AccountingHelper.Application.Interfaces;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
+using Microsoft.Extensions.Logging;
 
 namespace AccountingHelper.Application.Services;
 
 public class SalaryService : ISalaryService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<SalaryService> _logger;
     
-    public SalaryService(IUnitOfWork unitOfWork)
+    public SalaryService(IUnitOfWork unitOfWork, ILogger<SalaryService> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
     
     public async Task<Salary> ChangeSalary(Guid employeeId, SalaryType salaryType, decimal newSalary, CancellationToken ct)
@@ -32,6 +35,9 @@ public class SalaryService : ISalaryService
         var currentSalary = await _unitOfWork.Salaries
             .GetCurrentSalaryAsync(employeeId, ct);
         
+        var oldSalaryAmount = currentSalary?.Amount;
+        var oldSalaryType = currentSalary?.Type;
+        
         if (currentSalary != null)
             await _unitOfWork.Salaries.CloseAsync(currentSalary.Id, ct);
 
@@ -46,6 +52,14 @@ public class SalaryService : ISalaryService
         
         _unitOfWork.Salaries.Add(salary);
         await _unitOfWork.SaveChangesAsync(ct);
+        
+        _logger.LogInformation(
+            "Salary updated for employee {EmployeeId}. Old: {OldAmount} ({OldType}), New: {NewAmount} ({NewType}).",
+            employeeId,
+            oldSalaryAmount,
+            oldSalaryType,
+            salary.Amount,
+            salary.Type);
         
         return salary;
     }
