@@ -3,10 +3,7 @@ using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Interfaces;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using AccountingHelper.Application.Exceptions;
-using ValidationException = AccountingHelper.Application.Exceptions.ValidationException;
 
 namespace AccountingHelper.API.Controllers;
 
@@ -31,13 +28,8 @@ public class SalaryController : ControllerBase
     public async Task<IActionResult> ChangeSalary(
         Guid employeeId,
         [FromBody] ChangeSalaryRequest request,
-        [FromServices] IValidator<ChangeSalaryRequest> validator,
         CancellationToken ct = default)
     {
-        var validationResult = await validator.ValidateAsync(request);
-        if (!validationResult.IsValid)
-            throw new ValidationException(validationResult.Errors);
-        
         var result = await _salaryService.ChangeSalary(employeeId, request.SalaryType, request.Amount, ct);
         
         return Ok(result.ToResponse());

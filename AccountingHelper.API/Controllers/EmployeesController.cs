@@ -3,10 +3,7 @@ using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Interfaces;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using AccountingHelper.Application.Exceptions;
-using ValidationException = AccountingHelper.Application.Exceptions.ValidationException;
 
 
 namespace AccountingHelper.API.Controllers;
@@ -28,16 +25,8 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetEmployees(
         [FromQuery] EmployeeFilteredRequest request,
-        [FromServices] IValidator<EmployeeFilteredRequest> validator,
         CancellationToken ct=default)
     {
-        var validationResult = await validator.ValidateAsync(request);
-        
-        if (!validationResult.IsValid)
-        {
-            throw new ValidationException(validationResult.Errors);
-        }
-        
         var employees = await _employeeService.GetEmployees(request, ct);
         var total = await _employeeService.CountEmployees(request, ct);
         
@@ -71,14 +60,8 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateEmployee(
         [FromBody] CreateEmployeeRequest request,
-        [FromServices] IValidator<CreateEmployeeRequest> validator,
         CancellationToken ct=default)
     {
-        var validationResult = await validator.ValidateAsync(request);
-        
-        if (!validationResult.IsValid)
-            throw new ValidationException(validationResult.Errors);
-        
         var model = request.ToModel();
         var created = await _employeeService.CreateEmployee(model, ct);
 
