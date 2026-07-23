@@ -27,8 +27,7 @@ public class EmployeesController : ControllerBase
         [FromQuery] EmployeeFilteredRequest request,
         CancellationToken ct=default)
     {
-        var employees = await _employeeService.GetEmployees(request, ct);
-        var total = await _employeeService.CountEmployees(request, ct);
+        var (employees, total) = await _employeeService.GetEmployees(request, ct);
         
         var response = PagedResponse<EmployeeResponse>.Create(
             employees.Select(e => e.ToResponse()).ToList().AsReadOnly(),

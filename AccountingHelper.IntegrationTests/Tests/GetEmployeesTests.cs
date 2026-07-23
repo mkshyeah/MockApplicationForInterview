@@ -38,6 +38,7 @@ public class GetEmployeesTests : IntegrationTestBase
         page.Returned.Should().Be(2);
         page.Items.Should().HaveCount(2);
         page.Items.Select(e => e.FullName).Should().Equal("Emp2 Test", "Emp3 Test");
+        page.Items.Should().OnlyContain(e => e.CurrentSalary != null && e.Department != null);
     }
 
     [Fact]

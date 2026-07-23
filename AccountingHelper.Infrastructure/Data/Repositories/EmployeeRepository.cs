@@ -84,56 +84,51 @@ public class EmployeeRepository : IEmployeeRepository
          .FirstOrDefaultAsync(ct);
    }
 
-   public async Task<IEnumerable<Employee>> GetFilteredAsync(
+   public async Task<(IReadOnlyList<Employee> Items, int TotalCount)> GetFilteredAsync(
       int offset, int limit,
       EmployeeOrderBy orderBy, SortDirection direction,
       Guid? departmentId, EmployeeStatus? status,
       CancellationToken ct)
    {
-      var query = _dbContext.Employees
-         .Include(e => e.Department)
-         .Include(e => e.Position)
-         .Include(e => e.Salaries)
-         .AsNoTracking()
-         .AsQueryable();
+      var filtered = _dbContext.Employees.AsNoTracking().AsQueryable();
 
       if (departmentId.HasValue)
-         query = query.Where(e => e.DepartmentId == departmentId);
+         filtered = filtered.Where(e => e.DepartmentId == departmentId);
 
       if (status.HasValue)
-         query = query.Where(e => e.Status == status);
+         filtered = filtered.Where(e => e.Status == status);
       
       Expression<Func<EmployeeEntity, object>> keySelector = orderBy switch
       {
-         EmployeeOrderBy.Name => e => e.FirstName, 
-         EmployeeOrderBy.HireDate => e => e.HireDate,
-         EmployeeOrderBy.Status => e => e.Status,
-         EmployeeOrderBy.Department => e => e.Department!.Name, 
-         _ => e => e.CreatedAt
+         EmployeeOrderBy.Name       => e => e.FirstName,
+         EmployeeOrderBy.HireDate   => e => e.HireDate,
+         EmployeeOrderBy.Status     => e => e.Status,
+         EmployeeOrderBy.Department => e => e.Department!.Name,
+         _                          => e => e.CreatedAt
       };
 
-      query = direction == SortDirection.Ascending
-         ? query.OrderBy(keySelector)
-            : query.OrderByDescending(keySelector);
+      var ordered = direction == SortDirection.Ascending
+         ? filtered.OrderBy(keySelector)
+         : filtered.OrderByDescending(keySelector);
 
-      var entities = await query
+      var pageQuery = ordered
+         .Include(e => e.Department)
+         .Include(e => e.Position)
+         .Include(e => e.Salaries.Where(s => s.EndDate==null))
          .Skip(offset)
          .Take(limit)
-         .ToListAsync(ct);
+         .Select(e => new { Entity = e, TotalCount = filtered.Count() });
 
-      return entities.Select(e => e.ToModel());
-   }
+      var rows = await pageQuery.ToListAsync(ct);
 
-   public async Task<int> GetFilteredCountAsync(Guid? departmentId, EmployeeStatus? status, CancellationToken ct)
-   {
-      var query = _dbContext.Employees.AsNoTracking();
+      // Пустая страница (offset за концом данных): строк для чтения TotalCount нет,
+      // поэтому берём total отдельным COUNT. Осознанный второй round-trip только на
+      // вырожденном краевом случае — цель "один запрос" сохраняется на обычных страницах.
+      var items = rows.Select(r => r.Entity.ToModel()).ToList();
+      var total = rows.Count > 0
+         ? rows[0].TotalCount
+         : await filtered.CountAsync(ct);
 
-      if (departmentId.HasValue)
-         query = query.Where(e => e.DepartmentId == departmentId);
-
-      if (status.HasValue)
-         query = query.Where(e => e.Status == status);
-      
-      return await query.CountAsync(ct);
+      return (items, total);
    }
 }

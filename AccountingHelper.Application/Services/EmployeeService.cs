@@ -19,9 +19,9 @@ public class EmployeeService:IEmployeeService
         _logger = logger;
     }
     
-    public async Task<IReadOnlyList<Employee>> GetEmployees(EmployeeFilteredRequest request , CancellationToken ct )
+    public async Task<(IReadOnlyList<Employee> Items, int TotalCount)> GetEmployees(EmployeeFilteredRequest request , CancellationToken ct )
     {
-        var employees = await _unitOfWork.Employees.GetFilteredAsync(
+        var (employees,total) = await _unitOfWork.Employees.GetFilteredAsync(
             request.Offset,
             request.Limit,
             request.OrderBy,
@@ -30,7 +30,7 @@ public class EmployeeService:IEmployeeService
             request.EmployeeStatus,
             ct);
 
-        return employees.ToList().AsReadOnly();
+        return (employees, total);
     }
 
     public async Task<Employee> GetEmployee(Guid id, CancellationToken ct)
@@ -143,11 +143,5 @@ public class EmployeeService:IEmployeeService
         await _unitOfWork.SaveChangesAsync(ct);
         
         return employee;
-    }
-
-    public async Task<int> CountEmployees(EmployeeFilteredRequest request, CancellationToken ct)
-    {
-        return await _unitOfWork.Employees
-            .GetFilteredCountAsync(request.DepartmentId, request.EmployeeStatus, ct);
     }
 }

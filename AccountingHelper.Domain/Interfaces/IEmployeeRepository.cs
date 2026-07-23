@@ -10,7 +10,7 @@ public interface IEmployeeRepository : IRepository<Employee>
     
     Task<EmployeeStatus?> GetStatusAsync(Guid employeeId, CancellationToken ct);
 
-    Task<IEnumerable<Employee>> GetFilteredAsync(
+    Task<(IReadOnlyList<Employee> Items, int TotalCount)> GetFilteredAsync(
         int offset,
         int limit,
         EmployeeOrderBy orderBy,
@@ -18,6 +18,4 @@ public interface IEmployeeRepository : IRepository<Employee>
         Guid? departmentId,
         EmployeeStatus? status,
         CancellationToken ct);
-
-    Task<int> GetFilteredCountAsync(Guid? departmentId, EmployeeStatus? status, CancellationToken ct);
 }

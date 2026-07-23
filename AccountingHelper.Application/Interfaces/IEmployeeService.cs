@@ -6,7 +6,7 @@ namespace AccountingHelper.Application.Interfaces;
 public interface IEmployeeService
 {
 
-    Task<IReadOnlyList<Employee>> GetEmployees(EmployeeFilteredRequest request, CancellationToken ct);
+    Task<(IReadOnlyList<Employee> Items, int TotalCount)> GetEmployees(EmployeeFilteredRequest request, CancellationToken ct);
 
     Task<Employee> GetEmployee(Guid id,CancellationToken ct);
 
@@ -17,8 +17,5 @@ public interface IEmployeeService
     Task<Employee> SendOnVacation(Guid id, CancellationToken ct);
     
     Task<Employee> SendOffVacation(Guid id, CancellationToken ct);
-    
-    Task<int> CountEmployees(EmployeeFilteredRequest request, CancellationToken ct);
-    
     
 }
