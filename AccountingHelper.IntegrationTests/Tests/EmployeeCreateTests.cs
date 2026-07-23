@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Infrastructure.Data.Entities;
 using AccountingHelper.IntegrationTests.Setup;
@@ -130,5 +131,38 @@ public class EmployeeCreateTests : IntegrationTestBase
         var problem = await resp.Content.ReadFromJsonAsync<ProblemDetails>(Json);
 
         problem!.Detail.Should().ContainEquivalentOf("department");
+    }
+    
+    [Fact]
+    public async Task CreateEmployee_WhenSalaryTypeIsZero_ReturnsSingleValidationMessageForField()
+    {
+        // Arrange: тело валидно ВЕЗДЕ, кроме SalaryType = 0 — изолируем поле,
+        // чтобы проверять именно количество сообщений на нём, а не на других.
+        var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
+
+        var body = new
+        {
+            firstName = "John",
+            lastName = "Doe",
+            email = "john.doe@example.com",
+            positionId = seedPositionId,
+            salary = 5000m,
+            salaryType = 0,                 
+            departmentId = seedDepartmentId,
+            hireDate = "2020-01-01"
+        };
+
+        // Act
+        var response = await Client.PostAsJsonAsync("/v1/employees", body);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        problem.Should().NotBeNull();
+
+        problem!.Errors.Should().ContainKey(nameof(CreateEmployeeRequest.SalaryType));
+        problem.Errors[nameof(CreateEmployeeRequest.SalaryType)]
+            .Should().HaveCount(1);         
     }
 }

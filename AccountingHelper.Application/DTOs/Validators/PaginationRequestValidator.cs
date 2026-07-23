@@ -7,9 +7,10 @@ public class PaginationRequestValidator : AbstractValidator<PaginationRequest>
 {
     public PaginationRequestValidator()
     {
-        RuleFor(p => p.Offset).GreaterThanOrEqualTo(0).WithMessage("Offset must be >= 0");
-        RuleFor(p => p.Limit).NotEmpty()
-            .GreaterThanOrEqualTo(1).WithMessage("Limit must be between 1 and 100")
-            .LessThanOrEqualTo(100).WithMessage("Limit must be between 1 and 100");
+        RuleFor(p => p.Offset)
+            .GreaterThanOrEqualTo(0).WithMessage("Offset must be greater than or equal to 0.");
+
+        RuleFor(p => p.Limit)
+            .InclusiveBetween(1, 100).WithMessage("Limit must be between 1 and 100.");
     }
 }

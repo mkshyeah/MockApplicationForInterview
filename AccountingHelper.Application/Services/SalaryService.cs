@@ -29,9 +29,6 @@ public class SalaryService : ISalaryService
         if (employee.Status == EmployeeStatus.Fired)
             throw new BusinessRuleException($"Cannot change salary of a fired employee with ID '{employeeId}'.");
         
-        if (newSalary <= 0)
-            throw new ValidationException(nameof(newSalary), "Salary must be greater than 0.");
-
         var currentSalary = await _unitOfWork.Salaries
             .GetCurrentSalaryAsync(employeeId, ct);
         

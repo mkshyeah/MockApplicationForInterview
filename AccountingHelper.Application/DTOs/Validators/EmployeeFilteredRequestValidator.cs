@@ -7,9 +7,15 @@ public class EmployeeFilteredRequestValidator : AbstractValidator<EmployeeFilter
 {
     public EmployeeFilteredRequestValidator()
     {
-        RuleFor(e => e.OrderBy).NotEmpty().IsInEnum();
-        RuleFor(e => e.Direction).NotEmpty().IsInEnum();
-        RuleFor(e => e.EmployeeStatus).IsInEnum();
+        RuleFor(e => e.OrderBy)
+            .IsInEnum().WithMessage("OrderBy must be a valid value.");
+
+        RuleFor(e => e.Direction)
+            .IsInEnum().WithMessage("Direction must be a valid value.");
+
+        RuleFor(e => e.EmployeeStatus)
+            .IsInEnum().WithMessage("Employee status must be a valid value.");
+
         Include(new PaginationRequestValidator());
     }
 }

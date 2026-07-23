@@ -32,12 +32,12 @@ public class GlobalExceptionHandler : IExceptionHandler
 
         LogException(exception, correlationId, context);
 
-        var problemDetails = CreateProblemresponse(exception, correlationId, context);
+        var problemDetails = CreateProblemResponse(exception, correlationId, context);
         
         context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/problem+json";
 
-        await context.Response.WriteAsJsonAsync(problemDetails, ct);
+        await context.Response.WriteAsJsonAsync(problemDetails, problemDetails.GetType(), ct);
 
         return true;
         
@@ -73,7 +73,7 @@ public class GlobalExceptionHandler : IExceptionHandler
         }
     }
 
-    private ProblemDetails CreateProblemresponse(Exception exception, string correlationId, HttpContext context)
+    private ProblemDetails CreateProblemResponse(Exception exception, string correlationId, HttpContext context)
     {
         ProblemDetails problemDetails;
 

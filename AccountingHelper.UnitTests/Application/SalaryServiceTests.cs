@@ -115,52 +115,6 @@ public class SalaryServiceTests
     }
 
     [Fact]
-    public async Task ChangeSalary_WhenSalaryAmountBelowOrEqualZero_ShouldThrowValidationException()
-    {
-        //ARRANGE
-        var employeeId = Guid.NewGuid();
-        var newSalaryType = SalaryType.Monthly;
-        var newSalaryAmount = -1000m;
-
-        var activeEmployee = new Employee
-        {
-            Id = employeeId,
-            FirstName = "John",
-            LastName = "Doe",
-            Email = "J@mail.com",
-            DepartmentId = Guid.NewGuid(),
-            PositionId = Guid.NewGuid(),
-            Status = EmployeeStatus.Active,
-        };
-        
-        _employeeRepositoryMock
-            .Setup(r => r.GetByIdAsync(employeeId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(activeEmployee);
-        
-        //ACT
-        var act = async() => await _salaryService.ChangeSalary(employeeId, newSalaryType, newSalaryAmount, CancellationToken.None);
-        
-        //ASSERT
-        await act.Should().ThrowAsync<ValidationException>();
-        
-        _salaryRepositoryMock.Verify(
-            r => r.GetCurrentSalaryAsync(employeeId, It.IsAny<CancellationToken>()),
-            Times.Never);
-        
-        _salaryRepositoryMock.Verify(
-            r => r.CloseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        _salaryRepositoryMock.Verify(
-            r => r.Add(It.IsAny<Salary>()),
-            Times.Never);
-        
-        _unitOfWorkMock.Verify(
-            u => u.SaveChangesAsync(It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
     public async Task ChangeSalary_WhenCurrentSalaryExists_ShouldCallCloseAsync()
     {
         var employeeId = Guid.NewGuid();
