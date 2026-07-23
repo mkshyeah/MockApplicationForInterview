@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using AccountingHelper.Application.DTOs.Responses;
+using AccountingHelper.Domain.Enums;
 using AccountingHelper.IntegrationTests.Setup;
 using FluentAssertions;
 using Xunit;
@@ -54,5 +55,37 @@ public class GetEmployeesTests : IntegrationTestBase
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
     }
-        
+
+    [Fact]
+    public async Task GetEmployees_WithDuplicateSortKey_PagesCoverAllRowsWithoutDuplicatesOrGaps()
+    {
+        // ARRANGE
+        const int total = 25;
+        const int limit = 5;
+        var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
+
+        var seededIds = new List<Guid>();
+        for (int i = 0; i < total; i++)
+        {
+            var employeeResponse = await CreateEmployeeAsync(seedDepartmentId, seedPositionId, firstName: "Emp");
+            seededIds.Add(employeeResponse.Id);
+        }
+
+        // ACT
+        var collectedIds = new List<Guid>();
+        for (var offset = 0; offset < total; offset += limit)
+        {
+            var resp = await Client.GetAsync(
+                $"v1/employees?offset={offset}&limit={limit}&orderby={EmployeeOrderBy.Name}&direction={SortDirection.Ascending}");
+            resp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            var page = await resp.Content.ReadFromJsonAsync<PagedResponse<EmployeeResponse>>(Json);
+            collectedIds.AddRange(page!.Items.Select(e => e.Id));
+        }
+
+        // Assert
+        collectedIds.Should().HaveCount(total);
+        collectedIds.Should().OnlyHaveUniqueItems();
+        collectedIds.Should().BeEquivalentTo(seededIds);
+    }
 }

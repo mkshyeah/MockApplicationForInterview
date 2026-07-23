@@ -108,8 +108,8 @@ public class EmployeeRepository : IEmployeeRepository
       };
 
       var ordered = direction == SortDirection.Ascending
-         ? filtered.OrderBy(keySelector)
-         : filtered.OrderByDescending(keySelector);
+         ? filtered.OrderBy(keySelector).ThenBy(e => e.Id)
+         : filtered.OrderByDescending(keySelector).ThenBy(e => e.Id);
 
       var pageQuery = ordered
          .Include(e => e.Department)
