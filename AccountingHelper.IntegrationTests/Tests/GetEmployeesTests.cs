@@ -53,7 +53,6 @@ public class GetEmployeesTests : IntegrationTestBase
         
         //ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
-
     }
 
     [Fact]
