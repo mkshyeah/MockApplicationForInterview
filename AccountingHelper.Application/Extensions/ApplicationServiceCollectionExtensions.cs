@@ -11,6 +11,10 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        var assembly = typeof(ApplicationServiceCollectionExtensions).Assembly;
+        
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
+        
         ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("en-US");
         
         services.AddValidatorsFromAssembly(typeof(ApplicationServiceCollectionExtensions).Assembly);

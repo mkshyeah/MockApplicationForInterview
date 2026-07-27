@@ -1,8 +1,10 @@
 ﻿using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
+using AccountingHelper.Application.Features.Employees.FireEmployee;
 using AccountingHelper.Application.Interfaces;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -14,10 +16,14 @@ namespace AccountingHelper.API.Controllers;
 public class EmployeesController : ControllerBase
 {
     private readonly IEmployeeService _employeeService;
+    private readonly ISender _sender;
 
-    public EmployeesController(IEmployeeService employeeService)
+    public EmployeesController(
+        IEmployeeService employeeService,
+        ISender sender)
     {
         _employeeService = employeeService;
+        _sender = sender;
     }
     
     [HttpGet]
@@ -71,10 +77,10 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(typeof(EmployeeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> FireEmployee(Guid id, CancellationToken ct=default)
+    public async Task<ActionResult<EmployeeResponse>> FireEmployee(Guid id, CancellationToken ct=default)
     {
-        var result = await _employeeService.FireEmployee(id, ct);
-        return Ok(result.ToResponse());
+        var employee = await _sender.Send(new FireEmployeeCommand(id), ct);
+        return Ok(employee.ToResponse());
     }
 
     [HttpPatch("{id:guid}/on-vacation")]

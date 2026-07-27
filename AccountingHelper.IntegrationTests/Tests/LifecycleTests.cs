@@ -60,6 +60,25 @@ public class LifecycleTests : IntegrationTestBase
         //ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         resp3.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+
+        var problem = await resp3.Content.ReadFromJsonAsync<ProblemDetails>(Json);
+        problem!.Detail.Should().ContainEquivalentOf("is already fired");
+    }
+
+    [Fact]
+    public async Task FireEmployee_WhenEmployeeDoesNotExist_Returns404()
+    {
+        //ARRANGE
+        var unknownId = Guid.NewGuid();
+
+        //ACT
+        var resp = await Client.PatchAsync($"v1/employees/{unknownId}/fire", content: null);
+
+        //ASSERT
+        resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var problem = await resp.Content.ReadFromJsonAsync<ProblemDetails>(Json);
+        problem!.Detail.Should().ContainEquivalentOf("was not found");
     }
 
     [Fact]

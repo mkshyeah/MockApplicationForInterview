@@ -75,32 +75,6 @@ public class EmployeeService:IEmployeeService
         return (await _unitOfWork.Employees.GetByIdAsync(employee.Id, ct))!;
     }
 
-    public async Task<Employee> FireEmployee(Guid id, CancellationToken ct)
-    {
-        var employee= await _unitOfWork.Employees
-            .GetByIdAsync(id, ct);
-        
-        if (employee == null)
-            throw new NotFoundException("Employee", id);
-        
-        if (employee.Status == EmployeeStatus.Fired)
-            throw new BusinessRuleException($"Employee with ID '{id}' is already fired.");
-        
-        var currentSalary = await _unitOfWork.Salaries.GetCurrentSalaryAsync(id, ct);
-        if (currentSalary != null)
-            await _unitOfWork.Salaries.CloseAsync(currentSalary.Id, ct);
-            
-        employee.TerminationDate = DateTime.UtcNow;
-        employee.Status = EmployeeStatus.Fired;
-        
-        _unitOfWork.Employees.Update(employee);
-        await _unitOfWork.SaveChangesAsync(ct);
-        
-        _logger.LogInformation("Employee {EmployeeId} was successfully fired. Associated active salary was closed.", id);
-
-        return employee;
-    }
-
     public async Task<Employee> SendOnVacation(Guid id, CancellationToken ct)
     {
         var employee = await _unitOfWork.Employees

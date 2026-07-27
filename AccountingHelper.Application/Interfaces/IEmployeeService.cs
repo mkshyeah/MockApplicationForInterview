@@ -11,8 +11,6 @@ public interface IEmployeeService
     Task<Employee> GetEmployee(Guid id,CancellationToken ct);
 
     Task<Employee>CreateEmployee(Employee employee,CancellationToken ct);
-
-    Task<Employee> FireEmployee(Guid id,CancellationToken ct);
     
     Task<Employee> SendOnVacation(Guid id, CancellationToken ct);
     
