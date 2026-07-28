@@ -1,9 +1,9 @@
 ﻿using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
-using AccountingHelper.Application.Features.Employees.FireEmployee;
-using AccountingHelper.Application.Features.Employees.SendEmployeeOffVacation;
-using AccountingHelper.Application.Features.Employees.SendEmployeeOnVacation;
-using AccountingHelper.Application.Interfaces;
+using AccountingHelper.Application.Features.Employees.Commands.FireEmployee;
+using AccountingHelper.Application.Features.Employees.Commands.SendEmployeeOffVacation;
+using AccountingHelper.Application.Features.Employees.Commands.SendEmployeeOnVacation;
+using AccountingHelper.Application.Features.Employees.Queries.GetEmployee;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
 using MediatR;
@@ -17,14 +17,11 @@ namespace AccountingHelper.API.Controllers;
 [Route("v{version:apiVersion}/employees")]
 public class EmployeesController : ControllerBase
 {
-    private readonly IEmployeeService _employeeService;
     private readonly ISender _sender;
 
     public EmployeesController(
-        IEmployeeService employeeService,
         ISender sender)
     {
-        _employeeService = employeeService;
         _sender = sender;
     }
     
@@ -35,14 +32,14 @@ public class EmployeesController : ControllerBase
         [FromQuery] EmployeeFilteredRequest request,
         CancellationToken ct=default)
     {
-        var (employees, total) = await _employeeService.GetEmployees(request, ct);
+        var query = request.ToQuery();
+        var (employees, total) = await _sender.Send(query, ct);
         
         var response = PagedResponse<EmployeeResponse>.Create(
-            employees.Select(e => e.ToResponse()).ToList().AsReadOnly(),
+            employees.Select(e => e.ToResponse()).ToList(),
             total,
-            request.Limit,
-            request.Offset);
-
+            query.Limit,
+            query.Offset);
 
         return Ok(response);
     }
@@ -53,9 +50,9 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEmployee(Guid id, CancellationToken ct=default)
     {
-        var result = await _employeeService.GetEmployee(id, ct);
+        var employee = await _sender.Send(new GetEmployeeQuery(id), ct);
 
-        var response =  result.ToResponse();
+        var response =  employee.ToResponse();
         
         return Ok(response);
     }

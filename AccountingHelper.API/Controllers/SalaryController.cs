@@ -1,6 +1,6 @@
 using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
-using AccountingHelper.Application.Interfaces;
+using AccountingHelper.Application.Features.Salaries.Queries.GetSalaryHistory;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
 using MediatR;
@@ -14,14 +14,11 @@ namespace AccountingHelper.API.Controllers;
 [Route("v{version:apiVersion}/employees/{employeeId:guid}/salaries")]
 public class SalaryController : ControllerBase
 {
-    private readonly ISalaryService _salaryService;
     private readonly ISender _sender;
 
     public SalaryController(
-        ISalaryService salaryService,
         ISender sender)
     {
-        _salaryService = salaryService;
         _sender = sender;
     }
 
@@ -45,9 +42,9 @@ public class SalaryController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSalaryHistory(Guid employeeId, CancellationToken ct = default)
     {
-        var result = await _salaryService.GetSalaryHistory(employeeId, ct);
-        
-        var response = result.Select(s => s.ToResponse()).ToList().AsReadOnly();
+        var salaries = await _sender.Send(new GetSalaryHistoryQuery(employeeId), ct);
+
+        var response = salaries.Select(s => s.ToResponse()).ToList();
         return Ok(response);
     }
     

@@ -1,5 +1,5 @@
 using AccountingHelper.Application.Exceptions;
-using AccountingHelper.Application.Features.Employees.SendEmployeeOnVacation;
+using AccountingHelper.Application.Features.Employees.Commands.SendEmployeeOnVacation;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -7,12 +7,10 @@ using AccountingHelper.UnitTests.Common;
 using FluentAssertions;
 using Moq;
 
-namespace AccountingHelper.UnitTests.Application.Handlers;
+namespace AccountingHelper.UnitTests.Application.Handlers.Employees;
 
 public class SendEmployeeOnVacationCommandHandlerTests
 {
-    // A distinct token (never CancellationToken.None) so every Setup/Verify below
-    // proves the handler forwards the caller's token down each awaited call.
     private static readonly CancellationToken Ct = new CancellationTokenSource().Token;
 
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;

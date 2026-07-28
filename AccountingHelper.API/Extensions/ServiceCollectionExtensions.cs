@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using AccountingHelper.API.Filters;
 using AccountingHelper.API.Middleware;
 using AccountingHelper.Domain.Interfaces;
 using Asp.Versioning;
@@ -47,8 +46,6 @@ public static class ServiceCollectionExtensions
                 connectionString: connectionString,
                 name: "postgresql",
                 tags: ["database", "postgres", "live"]);
-        
-        services.Configure<MvcOptions>(o => o.Filters.Add<ValidationFilter>());
         
         return services;
     }

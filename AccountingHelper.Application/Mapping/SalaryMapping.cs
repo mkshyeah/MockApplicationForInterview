@@ -1,7 +1,6 @@
-using System.Threading.Channels;
 using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
-using AccountingHelper.Application.Features.Salaries.ChangeSalary;
+using AccountingHelper.Application.Features.Salaries.Commands.ChangeSalary;
 using AccountingHelper.Domain.Models;
 
 namespace AccountingHelper.Application.Mapping;

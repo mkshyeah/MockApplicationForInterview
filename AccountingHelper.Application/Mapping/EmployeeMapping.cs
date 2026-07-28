@@ -1,6 +1,7 @@
 using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
-using AccountingHelper.Application.Features.Employees.CreateEmployee;
+using AccountingHelper.Application.Features.Employees.Commands.CreateEmployee;
+using AccountingHelper.Application.Features.Employees.Queries.GetEmployees;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Models;
 
@@ -24,27 +25,6 @@ public static class EmployeeMapping
         TerminationDate =  model.TerminationDate
     };
 
-    public static Employee ToModel(this CreateEmployeeRequest request) => new()
-    {
-        FirstName = request.FirstName,
-        LastName = request.LastName,
-        Email = request.Email,
-        PositionId = request.PositionId,
-        DepartmentId = request.DepartmentId,
-        HireDate = request.HireDate,
-        Status = EmployeeStatus.Active,
-        Salaries =
-        [
-            new Salary
-            {
-                EmployeeId = Guid.Empty,
-                Amount = request.Salary,
-                Type = request.SalaryType,
-                EffectiveDate = request.HireDate
-            }
-        ]
-    };
-
     public static CreateEmployeeCommand ToCommand(this CreateEmployeeRequest request) => new(
         FirstName: request.FirstName,
         LastName: request.LastName,
@@ -55,5 +35,12 @@ public static class EmployeeMapping
         DepartmentId: request.DepartmentId,
         HireDate: request.HireDate);
 
+    public static GetEmployeesQuery ToQuery(this EmployeeFilteredRequest request) => new(
+        Offset: request.Offset,
+        Limit: request.Limit,
+        OrderBy: request.OrderBy,
+        Direction: request.Direction,
+        DepartmentId: request.DepartmentId,
+        EmployeeStatus: request.EmployeeStatus);
 }
 

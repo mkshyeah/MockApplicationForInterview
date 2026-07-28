@@ -1,5 +1,5 @@
 using AccountingHelper.Application.Exceptions;
-using AccountingHelper.Application.Features.Employees.FireEmployee;
+using AccountingHelper.Application.Features.Employees.Commands.FireEmployee;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -8,7 +8,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace AccountingHelper.UnitTests.Application.Handlers;
+namespace AccountingHelper.UnitTests.Application.Handlers.Employees;
 
 public class FireEmployeeCommandHandlerTests
 {
