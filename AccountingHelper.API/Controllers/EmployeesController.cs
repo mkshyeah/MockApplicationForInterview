@@ -1,6 +1,8 @@
 ﻿using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.Employees.FireEmployee;
+using AccountingHelper.Application.Features.Employees.SendEmployeeOffVacation;
+using AccountingHelper.Application.Features.Employees.SendEmployeeOnVacation;
 using AccountingHelper.Application.Interfaces;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
@@ -67,10 +69,9 @@ public class EmployeesController : ControllerBase
         [FromBody] CreateEmployeeRequest request,
         CancellationToken ct=default)
     {
-        var model = request.ToModel();
-        var created = await _employeeService.CreateEmployee(model, ct);
+        var employee = await _sender.Send(request.ToCommand(), ct);
 
-        return CreatedAtAction(nameof(GetEmployee), new { id = created.Id }, created.ToResponse());
+        return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee.ToResponse());
     }
 
     [HttpPatch("{id:guid}/fire")]
@@ -89,8 +90,8 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> SendOnVacation(Guid id, CancellationToken ct = default)
     {
-        var result = await _employeeService.SendOnVacation(id, ct);
-        return Ok(result.ToResponse());
+        var employee = await _sender.Send(new SendEmployeeOnVacationCommand(id), ct);
+        return Ok(employee.ToResponse());
     }
     
     [HttpPatch("{id:guid}/off-vacation")]
@@ -99,7 +100,7 @@ public class EmployeesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> SendOffVacation(Guid id, CancellationToken ct = default)
     {
-        var result = await _employeeService.SendOffVacation(id, ct);
-        return Ok(result.ToResponse());
+        var employee = await _sender.Send(new SendEmployeeOffVacationCommand(id), ct);
+        return Ok(employee.ToResponse());
     }
 }

@@ -3,6 +3,7 @@ using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Interfaces;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AccountingHelper.API.Controllers;
@@ -14,10 +15,14 @@ namespace AccountingHelper.API.Controllers;
 public class SalaryController : ControllerBase
 {
     private readonly ISalaryService _salaryService;
+    private readonly ISender _sender;
 
-    public SalaryController(ISalaryService salaryService)
+    public SalaryController(
+        ISalaryService salaryService,
+        ISender sender)
     {
         _salaryService = salaryService;
+        _sender = sender;
     }
 
     [HttpPut]
@@ -30,9 +35,9 @@ public class SalaryController : ControllerBase
         [FromBody] ChangeSalaryRequest request,
         CancellationToken ct = default)
     {
-        var result = await _salaryService.ChangeSalary(employeeId, request.SalaryType, request.Amount, ct);
+        var salary = await _sender.Send(request.ToCommand(employeeId), ct);
         
-        return Ok(result.ToResponse());
+        return Ok(salary.ToResponse());
     }
 
     [HttpGet]

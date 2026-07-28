@@ -19,15 +19,15 @@ public class LifecycleTests : IntegrationTestBase
     [Fact]
     public async Task FireEmployee_WhenActive_SetsFiredStatusAndClosesSalary()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
-        //ACT
+        // ACT
         var resp2 = await Client.PatchAsync($"v1/employees/{body.Id}/fire", content: null);
 
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var employee = await WithDbContextAsync(db =>
@@ -48,16 +48,16 @@ public class LifecycleTests : IntegrationTestBase
     [Fact]
     public async Task FireEmployee_WhenAlreadyFired_Returns422()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
-        //ACT
+        // ACT
         var resp2 = await Client.PatchAsync($"v1/employees/{body.Id}/fire", content: null);
         var resp3 = await Client.PatchAsync($"v1/employees/{body.Id}/fire", content: null);
 
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         resp3.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
 
@@ -68,13 +68,13 @@ public class LifecycleTests : IntegrationTestBase
     [Fact]
     public async Task FireEmployee_WhenEmployeeDoesNotExist_Returns404()
     {
-        //ARRANGE
+        // ARRANGE
         var unknownId = Guid.NewGuid();
 
-        //ACT
+        // ACT
         var resp = await Client.PatchAsync($"v1/employees/{unknownId}/fire", content: null);
 
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         var problem = await resp.Content.ReadFromJsonAsync<ProblemDetails>(Json);
@@ -84,15 +84,15 @@ public class LifecycleTests : IntegrationTestBase
     [Fact]
     public async Task SendOnVacation_WhenActive_SetsOnVacationStatus()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
-        //ACT
+        // ACT
         var resp2 = await Client.PatchAsync($"v1/employees/{body.Id}/on-vacation", content: null);
 
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var employee = await WithDbContextAsync(db =>
@@ -111,16 +111,16 @@ public class LifecycleTests : IntegrationTestBase
     [Fact]
     public async Task SendOnVacation_WhenFired_Returns422()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
-        //ACT
+        // ACT
         var resp2 = await Client.PatchAsync($"v1/employees/{body.Id}/fire", content: null);
         var resp3 = await Client.PatchAsync($"v1/employees/{body.Id}/on-vacation", content: null);
         
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         resp3.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         
@@ -136,15 +136,15 @@ public class LifecycleTests : IntegrationTestBase
     [Fact]
     public async Task SendOffVacation_WhenNotOnVacation_Returns422()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
-        //ACT
+        // ACT
         var resp2 = await Client.PatchAsync($"v1/employees/{body.Id}/off-vacation", content: null);
         
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         
         var problem = await resp2.Content.ReadFromJsonAsync<ProblemDetails>(Json);

@@ -1,5 +1,6 @@
 using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
+using AccountingHelper.Application.Features.Employees.CreateEmployee;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Models;
 
@@ -43,5 +44,16 @@ public static class EmployeeMapping
             }
         ]
     };
+
+    public static CreateEmployeeCommand ToCommand(this CreateEmployeeRequest request) => new(
+        FirstName: request.FirstName,
+        LastName: request.LastName,
+        Email: request.Email,
+        SalaryAmount: request.Salary,
+        SalaryType: request.SalaryType,
+        PositionId: request.PositionId,
+        DepartmentId: request.DepartmentId,
+        HireDate: request.HireDate);
+
 }
 

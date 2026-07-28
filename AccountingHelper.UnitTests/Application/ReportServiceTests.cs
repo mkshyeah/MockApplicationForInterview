@@ -31,17 +31,17 @@ public class ReportServiceTests
     [Fact]
     public async Task GetEmployeeStatus_WhenEmployeeNotFound_ShouldThrowNotFoundException()
     {
-        //ARRANGE
+        // ARRANGE
         var employeeId = Guid.NewGuid();
         
         _employeeRepositoryMock
             .Setup(r => r.GetStatusAsync(employeeId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((EmployeeStatus?) null);
         
-        //ACT
+        // ACT
         var act = async () => await _reportService.GetEmployeeStatus(employeeId, CancellationToken.None);
         
-        //ASSERT
+        // ASSERT
         await act.Should().ThrowAsync<NotFoundException>();
         
     }
@@ -49,17 +49,17 @@ public class ReportServiceTests
     [Fact]
     public async Task GetEmployeeStatus_WhenEmployeeFound_ShouldReturnEmployeeStatus()
     {
-        //ARRANGE
+        // ARRANGE
         var employeeId = Guid.NewGuid();
         
         _employeeRepositoryMock
             .Setup(r => r.GetStatusAsync(employeeId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(EmployeeStatus.Active);
         
-        //ACT
+        // ACT
         var result = await _reportService.GetEmployeeStatus(employeeId, CancellationToken.None);
         
-        //ASSERT
+        // ASSERT
         result.Should().Be(EmployeeStatus.Active);
     }
 
@@ -71,7 +71,7 @@ public class ReportServiceTests
     [Fact]
     public async Task GetSalaryByType_WhenSalaryNotFound_ShouldThrowNotFoundException()
     {
-        //ARRANGE
+        // ARRANGE
         var employeeId = Guid.NewGuid();
         var salaryType = SalaryType.Monthly;
         
@@ -79,10 +79,10 @@ public class ReportServiceTests
             .Setup(r => r.GetCurrentSalaryAsync(employeeId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Salary?) null);
         
-        //ACT
+        // ACT
         var act = async() => await _reportService.GetSalaryByType(employeeId, salaryType, CancellationToken.None);
         
-        //ASSERT
+        // ASSERT
         await act.Should().ThrowAsync<NotFoundException>();
     }
     #endregion
@@ -124,10 +124,10 @@ public class ReportServiceTests
             .Setup(r => r.GetCurrentSalaryAsync(employeeId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(salary);
         
-        //ACT
+        // ACT
         var result = await _reportService.CalculateTaxes(employeeId, CancellationToken.None);
         
-        //ASSERT
+        // ASSERT
         result.Should().Be(140000);
     }
     

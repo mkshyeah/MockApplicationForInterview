@@ -17,49 +17,6 @@ public class SalaryService : ISalaryService
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
-    
-    public async Task<Salary> ChangeSalary(Guid employeeId, SalaryType salaryType, decimal newSalary, CancellationToken ct)
-    {
-        var employee = await _unitOfWork.Employees
-            .GetByIdAsync(employeeId, ct);
-        
-        if (employee == null)
-            throw new NotFoundException("Employee", employeeId);
-        
-        if (employee.Status == EmployeeStatus.Fired)
-            throw new BusinessRuleException($"Cannot change salary of a fired employee with ID '{employeeId}'.");
-        
-        var currentSalary = await _unitOfWork.Salaries
-            .GetCurrentSalaryAsync(employeeId, ct);
-        
-        var oldSalaryAmount = currentSalary?.Amount;
-        var oldSalaryType = currentSalary?.Type;
-        
-        if (currentSalary != null)
-            await _unitOfWork.Salaries.CloseAsync(currentSalary.Id, ct);
-
-        var salary = new Salary
-        {
-            Id = Guid.NewGuid(),
-            Type = salaryType,
-            Amount = newSalary,
-            EffectiveDate = DateTime.UtcNow,
-            EmployeeId = employee.Id
-        };
-        
-        _unitOfWork.Salaries.Add(salary);
-        await _unitOfWork.SaveChangesAsync(ct);
-        
-        _logger.LogInformation(
-            "Salary updated for employee {EmployeeId}. Old: {OldAmount} ({OldType}), New: {NewAmount} ({NewType}).",
-            employeeId,
-            oldSalaryAmount,
-            oldSalaryType,
-            salary.Amount,
-            salary.Type);
-        
-        return salary;
-    }
 
     public async Task<IReadOnlyList<Salary>> GetSalaryHistory(Guid employeeId, CancellationToken ct)
     {

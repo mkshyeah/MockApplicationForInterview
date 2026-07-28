@@ -16,7 +16,7 @@ public class ReportingTests : IntegrationTestBase
     [Fact]
     public async Task GetEmployeeCount_ReturnsTotalNumberOfEmployees()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
         for (int i = 0; i < 6; i++)
@@ -24,10 +24,10 @@ public class ReportingTests : IntegrationTestBase
             await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
         }
         
-        //ACT
+        // ACT
         var resp2 = await Client.GetAsync("v1/reporting/employees/count");
         
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         var count = await resp2.Content.ReadFromJsonAsync<int>(Json);
         count.Should().Be(6);
@@ -36,7 +36,7 @@ public class ReportingTests : IntegrationTestBase
     [Fact]
     public async Task GetActiveSalarySum_ExcludesClosedSalaryOfFiredEmployee()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
  
         var employeeIds = new List<Guid>();
@@ -50,10 +50,10 @@ public class ReportingTests : IntegrationTestBase
         var fireResp = await Client.PatchAsync($"v1/employees/{employeeIds[2]}/fire", content: null);
         fireResp.StatusCode.Should().Be(HttpStatusCode.OK);
  
-        //ACT
+        // ACT
         var resp2 = await Client.GetAsync("v1/reporting/salaries");
  
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         var amount = await resp2.Content.ReadFromJsonAsync<decimal>(Json);
         amount.Should().Be(12000m); // 15000 - 3000 уволенного
@@ -62,7 +62,7 @@ public class ReportingTests : IntegrationTestBase
     [Fact]
     public async Task GetActiveSalarySum_ReflectsRaisedEmployeeSalary()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
  
         var employeeIds = new List<Guid>();
@@ -79,10 +79,10 @@ public class ReportingTests : IntegrationTestBase
         });
         changeResp.StatusCode.Should().Be(HttpStatusCode.OK);
  
-        //ACT
+        // ACT
         var resp2 = await Client.GetAsync("v1/reporting/salaries");
  
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         var amount = await resp2.Content.ReadFromJsonAsync<decimal>(Json);
         amount.Should().Be(24000m); // 15000 - 1000 (старая Emp1) + 10000 (новая Emp1)
@@ -91,7 +91,7 @@ public class ReportingTests : IntegrationTestBase
     [Fact]
     public async Task GetEmployeeTaxes_ReturnsMonthlyTaxForActiveSalary()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
         body.Should().NotBeNull();
@@ -102,10 +102,10 @@ public class ReportingTests : IntegrationTestBase
         });
         changeResp.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        //ACT
+        // ACT
         var resp2 = await Client.GetAsync($"v1/reporting/employees/{body.Id}/taxes");
         
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         var amount = await resp2.Content.ReadFromJsonAsync<decimal>(Json);
         
@@ -122,14 +122,14 @@ public class ReportingTests : IntegrationTestBase
         var salary = decimal.Parse(salaryStr, CultureInfo.InvariantCulture);
         var expectedTax = decimal.Parse(expectedTaxStr, CultureInfo.InvariantCulture);
  
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId, salary: salary);
 
-        //ACT
+        // ACT
         var resp2 = await Client.GetAsync($"v1/reporting/employees/{body.Id}/taxes");
  
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         var amount = await resp2.Content.ReadFromJsonAsync<decimal>(Json);
  
@@ -139,13 +139,13 @@ public class ReportingTests : IntegrationTestBase
     [Fact]
     public async Task GetEmployeeStatus_WhenNotFound_Returns404()
     {
-        //ARRANGE
+        // ARRANGE
         var missingEmployeeId = Guid.NewGuid();
  
-        //ACT
+        // ACT
         var resp = await Client.GetAsync($"v1/reporting/employees/{missingEmployeeId}/status");
  
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

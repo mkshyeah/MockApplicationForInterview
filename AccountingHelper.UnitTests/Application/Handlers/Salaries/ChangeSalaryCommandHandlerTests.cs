@@ -1,5 +1,5 @@
 using AccountingHelper.Application.Exceptions;
-using AccountingHelper.Application.Services;
+using AccountingHelper.Application.Features.Salaries.ChangeSalary;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -7,17 +7,19 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace AccountingHelper.UnitTests.Application;
+namespace AccountingHelper.UnitTests.Application.Handlers.Salaries;
 
-public class SalaryServiceTests
+public class ChangeSalaryCommandHandlerTests
 {
+    private static readonly CancellationToken Ct = new CancellationTokenSource().Token;
+    
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<IEmployeeRepository> _employeeRepositoryMock;
     private readonly Mock<ISalaryRepository> _salaryRepositoryMock;
-    private readonly Mock<ILogger<SalaryService>> _loggerMock;
-    private readonly SalaryService _salaryService;
-
-    public SalaryServiceTests()
+    private readonly Mock<ILogger<ChangeSalaryCommandHandler>> _loggerMock;
+    private readonly ChangeSalaryCommandHandler _handler;
+    
+    public ChangeSalaryCommandHandlerTests()
     {
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _employeeRepositoryMock = new Mock<IEmployeeRepository>();
@@ -26,37 +28,43 @@ public class SalaryServiceTests
         _unitOfWorkMock.Setup(u => u.Employees).Returns(_employeeRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.Salaries).Returns(_salaryRepositoryMock.Object);
 
-        _loggerMock = new Mock<ILogger<SalaryService>>();
+        _loggerMock = new Mock<ILogger<ChangeSalaryCommandHandler>>();
 
-        _salaryService = new SalaryService(_unitOfWorkMock.Object, _loggerMock.Object);
+        _handler = new ChangeSalaryCommandHandler(_unitOfWorkMock.Object, _loggerMock.Object);
+
     }
-
-    #region ChangeSalary Tests
+    
+    public static ChangeSalaryCommand ValidCommand(
+        Guid? employeeId = null
+        ) => new(
+        EmployeeId:employeeId ?? Guid.NewGuid(), 
+        Amount: 1000,
+        SalaryType: SalaryType.Monthly);
+    
 
     [Fact]
     public async Task ChangeSalary_WhenEmployeeNotFound_ShouldThrowNotFoundException()
     {
-        //ARRANGE
+        // ARRANGE
         var employeeId = Guid.NewGuid();
-        var newSalaryType = SalaryType.Monthly;
-        var newSalaryAmount = 1000m;
+        var command = ValidCommand(employeeId);
 
         _employeeRepositoryMock
-            .Setup(r => r.GetByIdAsync(employeeId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(employeeId, Ct))
             .ReturnsAsync((Employee?) null);
         
-        //ACT
-        var act = async() => await _salaryService.ChangeSalary(employeeId, newSalaryType, newSalaryAmount, CancellationToken.None);
+        // ACT
+        var act = async() => await _handler.Handle(command, Ct);
         
-        //ASSERT
+        // ASSERT
         await act.Should().ThrowAsync<NotFoundException>();
         
         _salaryRepositoryMock.Verify(
-            r => r.GetCurrentSalaryAsync(employeeId, It.IsAny<CancellationToken>()),
+            r => r.GetCurrentSalaryAsync(employeeId, Ct),
             Times.Never);
         
         _salaryRepositoryMock.Verify(
-            r => r.CloseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            r => r.CloseAsync(It.IsAny<Guid>(), Ct),
             Times.Never);
 
         _salaryRepositoryMock.Verify(
@@ -64,17 +72,16 @@ public class SalaryServiceTests
             Times.Never);
         
         _unitOfWorkMock.Verify(
-            u => u.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            u => u.SaveChangesAsync(Ct),
             Times.Never);
     }
 
     [Fact]
     public async Task ChangeSalary_WhenEmployeeIsFired_ShouldThrowBusinessRuleException()
     {
-        //ARRANGE
+        // ARRANGE
         var employeeId = Guid.NewGuid();
-        var newSalaryType = SalaryType.Monthly;
-        var newSalaryAmount = 1000m;
+        var command = ValidCommand(employeeId);
 
         var firedEmployee = new Employee
         {
@@ -88,21 +95,21 @@ public class SalaryServiceTests
         };
         
         _employeeRepositoryMock
-            .Setup(r => r.GetByIdAsync(employeeId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(employeeId, Ct))
             .ReturnsAsync(firedEmployee);
         
-        //ACT
-        var act = async() => await _salaryService.ChangeSalary(employeeId, newSalaryType, newSalaryAmount, CancellationToken.None);
+        // ACT
+        var act = async() => await _handler.Handle(command, Ct);
         
-        //ASSERT
+        // ASSERT
         await act.Should().ThrowAsync<BusinessRuleException>();
         
         _salaryRepositoryMock.Verify(
-            r => r.GetCurrentSalaryAsync(employeeId, It.IsAny<CancellationToken>()),
+            r => r.GetCurrentSalaryAsync(employeeId, Ct),
             Times.Never);
         
         _salaryRepositoryMock.Verify(
-            r => r.CloseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            r => r.CloseAsync(It.IsAny<Guid>(), Ct),
             Times.Never);
 
         _salaryRepositoryMock.Verify(
@@ -110,7 +117,7 @@ public class SalaryServiceTests
             Times.Never);
         
         _unitOfWorkMock.Verify(
-            u => u.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            u => u.SaveChangesAsync(Ct),
             Times.Never);
     }
 
@@ -119,7 +126,6 @@ public class SalaryServiceTests
     {
         var employeeId = Guid.NewGuid();
         var currentSalaryId = Guid.NewGuid();
-        var newSalaryId = Guid.NewGuid();
 
         var activeEmployee = new Employee
         {
@@ -141,47 +147,40 @@ public class SalaryServiceTests
             EmployeeId = employeeId,
         };
 
-        var newSalary = new Salary
-        {
-            Id = newSalaryId,
-            Amount = 1000,
-            Type = SalaryType.Monthly,
-            EffectiveDate = DateTime.UtcNow,
-            EmployeeId = employeeId
-        };
+        var command = ValidCommand(employeeId);
 
         _employeeRepositoryMock
-            .Setup(r => r.GetByIdAsync(employeeId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(employeeId, Ct))
             .ReturnsAsync(activeEmployee);
 
         _salaryRepositoryMock
-            .Setup(r => r.GetCurrentSalaryAsync(employeeId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetCurrentSalaryAsync(employeeId, Ct))
             .ReturnsAsync(oldSalary);
         
         _salaryRepositoryMock
-            .Setup(r => r.CloseAsync(oldSalary.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.CloseAsync(oldSalary.Id, Ct))
             .Returns(Task.CompletedTask);
 
-        //ACT
-        var result =  await _salaryService.ChangeSalary(employeeId, newSalary.Type, newSalary.Amount, CancellationToken.None);
+        // ACT
+        var result =  await _handler.Handle(command, Ct);
         
-        //ASSERT
-        result.Amount.Should().Be(newSalary.Amount);
-        result.Type.Should().Be(newSalary.Type);
+        // ASSERT
+        result.Amount.Should().Be(command.Amount);
+        result.Type.Should().Be(command.SalaryType);
         result.EmployeeId.Should().Be(employeeId);
         result.Id.Should().NotBeEmpty();
         
         _salaryRepositoryMock.Verify(
-            r => r.CloseAsync(oldSalary.Id, It.IsAny<CancellationToken>()),
+            r => r.CloseAsync(oldSalary.Id, Ct),
             Times.Once);
         
         _salaryRepositoryMock.Verify(r => r.Add(It.Is<Salary>(s =>
-            s.Amount == newSalary.Amount &&
-            s.Type == newSalary.Type &&
+            s.Amount == command.Amount &&
+            s.Type == command.SalaryType &&
             s.EmployeeId == employeeId)), Times.Once);
         
         _unitOfWorkMock.Verify(
-            u => u.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            u => u.SaveChangesAsync(Ct),
             Times.Once);
     }
 
@@ -201,45 +200,37 @@ public class SalaryServiceTests
             Status = EmployeeStatus.Active
         };
 
-        var newSalary = new Salary
-        {
-            Amount = 1000,
-            Type = SalaryType.Monthly,
-            EffectiveDate = DateTime.UtcNow,
-            EmployeeId = employeeId
-        };
+        var command = ValidCommand(employeeId);
         
         _employeeRepositoryMock
-            .Setup(r => r.GetByIdAsync(employeeId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetByIdAsync(employeeId, Ct))
             .ReturnsAsync(activeEmployee);
 
         _salaryRepositoryMock
-            .Setup(r => r.GetCurrentSalaryAsync(employeeId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetCurrentSalaryAsync(employeeId, Ct))
             .ReturnsAsync((Salary?)null);
         
         
-        //ACT
-        var result = await _salaryService.ChangeSalary(employeeId, newSalary.Type, newSalary.Amount, CancellationToken.None);
+        // ACT
+        var result = await _handler.Handle(command, Ct);
         
-        //ASSERT
-        result.Amount.Should().Be(newSalary.Amount);
-        result.Type.Should().Be(newSalary.Type);
+        // ASSERT
+        result.Amount.Should().Be(command.Amount);
+        result.Type.Should().Be(command.SalaryType);
         result.EmployeeId.Should().Be(employeeId);
         result.Id.Should().NotBeEmpty();
 
         _salaryRepositoryMock.Verify(
-            r => r.CloseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            r => r.CloseAsync(It.IsAny<Guid>(), Ct),
             Times.Never);
         
         _salaryRepositoryMock.Verify(r => r.Add(It.Is<Salary>(s =>
-            s.Amount == newSalary.Amount &&
-            s.Type == newSalary.Type &&
+            s.Amount == command.Amount &&
+            s.Type == command.SalaryType &&
             s.EmployeeId == employeeId)), Times.Once);
         
         _unitOfWorkMock.Verify(
-            u => u.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            u => u.SaveChangesAsync(Ct),
             Times.Once);
     }
-
-#endregion
 }

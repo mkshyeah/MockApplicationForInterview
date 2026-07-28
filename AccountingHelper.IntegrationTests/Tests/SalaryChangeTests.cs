@@ -20,16 +20,16 @@ public class SalaryChangeTests : IntegrationTestBase
     [Fact]
     public async Task ChangeSalary_ClosesOldSalary_AndOpensExactlyOneActive()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
         var employee = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
-        //ACT
+        // ACT
         var resp = await Client.PutAsJsonAsync(
             $"v1/employees/{employee.Id}/salaries",
             new {amount = 1500m, salaryType = "Monthly"});
         
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
         var newSalary = await resp.Content.ReadFromJsonAsync<SalaryResponse>(Json);
         newSalary!.Amount.Should().Be(1500m);
@@ -49,7 +49,7 @@ public class SalaryChangeTests : IntegrationTestBase
     [Fact]
     public async Task ChangeSalary_WhenEmployeeFired_Returns422()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
         var employee = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
@@ -57,12 +57,12 @@ public class SalaryChangeTests : IntegrationTestBase
             $"v1/employees/{employee.Id}/fire", content: null);
         fire.StatusCode.Should().Be(HttpStatusCode.OK);
  
-        //ACT
+        // ACT
         var resp = await Client.PutAsJsonAsync(
             $"v1/employees/{employee.Id}/salaries",
             new {amount = 1500m, salaryType = "Monthly"});
  
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
  
         var problem = await resp.Content.ReadFromJsonAsync<ProblemDetails>(Json);
@@ -80,15 +80,15 @@ public class SalaryChangeTests : IntegrationTestBase
     [Fact]
     public async Task ChangeSalary_WhenEmployeeNotFound_Returns404()
     {
-        //ARRANGE
+        // ARRANGE
         var missingEmployeeId = Guid.NewGuid();
  
-        //ACT
+        // ACT
         var resp = await Client.PutAsJsonAsync(
             $"v1/employees/{missingEmployeeId}/salaries",
             new { amount = 1500m, salaryType = "Monthly" });
  
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -97,16 +97,16 @@ public class SalaryChangeTests : IntegrationTestBase
     [InlineData(-100)]
     public async Task ChangeSalary_WithNonPositiveAmount_Returns400(int amount)
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
         var employee = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
-        //ACT
+        // ACT
         var resp = await Client.PutAsJsonAsync(
             $"v1/employees/{employee.Id}/salaries",
             new { amount, salaryType = "Monthly" });
  
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
  
         var salaries = await WithDbContextAsync(db =>
@@ -121,7 +121,7 @@ public class SalaryChangeTests : IntegrationTestBase
     [Fact]
     public async Task GetSalaryHistory_ReturnsAllSalariesOrderedByEffectiveDate()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
         var employee = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
@@ -135,11 +135,11 @@ public class SalaryChangeTests : IntegrationTestBase
             new { amount = 2000m, salaryType = "Monthly" });
         raise2.StatusCode.Should().Be(HttpStatusCode.OK);
         
-        //ACT
+        // ACT
         
         var resp = await Client.GetAsync($"v1/employees/{employee.Id}/salaries");
         
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var history = await resp.Content.ReadFromJsonAsync<IReadOnlyList<SalaryResponse>>(Json);

@@ -19,12 +19,12 @@ public class ApplicationHealthTests : IntegrationTestBase
     [Fact]
     public async Task GetHealthLive_WhenDatabaseReachable_Returns200AndHealthy()
     {
-        //ARRANGE
+        // ARRANGE
  
-        //ACT
+        // ACT
         var resp = await Client.GetAsync("/health/live");
  
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
  
         var report = await resp.Content.ReadFromJsonAsync<HealthReportDto>(Json);

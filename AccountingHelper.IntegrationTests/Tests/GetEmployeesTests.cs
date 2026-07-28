@@ -18,7 +18,7 @@ public class GetEmployeesTests : IntegrationTestBase
     [Fact]
     public async Task GetEmployees_WithOffsetAndLimit_ReturnsPagedSubset()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
         for (int i = 0; i < 5; i++)
@@ -26,10 +26,10 @@ public class GetEmployeesTests : IntegrationTestBase
             await CreateEmployeeAsync(seedDepartmentId, seedPositionId, firstName: $"Emp{i}");
         }
         
-        //ACT
+        // ACT
         var resp2 = await Client.GetAsync("v1/employees?offset=2&limit=2");
         
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         var page = await resp2.Content.ReadFromJsonAsync<PagedResponse<EmployeeResponse>>(Json);
         
@@ -45,13 +45,13 @@ public class GetEmployeesTests : IntegrationTestBase
     [Fact]
     public async Task GetEmployee_WhenNotFound_Returns404()
     {
-        //ARRANGE
+        // ARRANGE
         var missingId = Guid.NewGuid();
         
-        //ACT
+        // ACT
         var resp = await Client.GetAsync($"v1/employees/{missingId}");
         
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 

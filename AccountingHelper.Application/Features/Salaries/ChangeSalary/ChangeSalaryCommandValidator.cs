@@ -1,12 +1,10 @@
-﻿using AccountingHelper.Application.DTOs.Requests;
 using FluentValidation;
 
+namespace AccountingHelper.Application.Features.Salaries.ChangeSalary;
 
-namespace AccountingHelper.Application.DTOs.Validators;
-
-public class ChangeSalaryRequestValidator : AbstractValidator<ChangeSalaryRequest>
+public class ChangeSalaryCommandValidator : AbstractValidator<ChangeSalaryCommand>
 {
-    public ChangeSalaryRequestValidator()
+    public ChangeSalaryCommandValidator()
     {
         RuleFor(x => x.Amount)
             .GreaterThan(0).WithMessage("Amount must be greater than 0.")

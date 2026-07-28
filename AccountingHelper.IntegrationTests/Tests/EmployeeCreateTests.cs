@@ -20,10 +20,10 @@ public class EmployeeCreateTests : IntegrationTestBase
     [Fact]
     public async Task CreateEmployee_WithValidData_Returns201AndPersists()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
-        //ACT
+        // ACT
         var resp = await Client.PostAsJsonAsync("v1/employees", new
         {
             firstName = "Emp", lastName = "Test", email = "emp@test.com",
@@ -31,7 +31,7 @@ public class EmployeeCreateTests : IntegrationTestBase
             salary = 1000m, salaryType = "Monthly", hireDate = "2026-01-01T00:00:00Z"
         });
 
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var body = await resp.Content.ReadFromJsonAsync<EmployeeResponse>(Json);
@@ -50,13 +50,13 @@ public class EmployeeCreateTests : IntegrationTestBase
     [Fact]
     public async Task CreateEmployee_CreatesInitialActiveSalary()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
-        //ACT
+        // ACT
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
-        //ASSERT
+        // ASSERT
         var salaries = await WithDbContextAsync(db =>
             db.Set<SalaryEntity>()
                 .Where(s => s.EmployeeId == body.Id)
@@ -70,16 +70,16 @@ public class EmployeeCreateTests : IntegrationTestBase
     [Fact]
     public async Task CreateEmployee_ThenGetById_ReturnsSameEmployee()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
-        //ACT
+        // ACT
         var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
 
         var resp2 = await Client.GetAsync($"v1/employees/{body.Id}");
         var body2 = await resp2.Content.ReadFromJsonAsync<EmployeeResponse>(Json);
 
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.OK);
         body2.Should().BeEquivalentTo(body);
     }
@@ -87,10 +87,10 @@ public class EmployeeCreateTests : IntegrationTestBase
     [Fact]
     public async Task CreateEmployee_WithDuplicateEmail_Returns409()
     {
-        //ARRANGE
+        // ARRANGE
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
-        //ACT
+        // ACT
         // baseline-сотрудник — сам POST здесь не предмет теста, поэтому через хелпер
         await CreateEmployeeAsync(seedDepartmentId, seedPositionId, email: "emp@test.com");
 
@@ -102,7 +102,7 @@ public class EmployeeCreateTests : IntegrationTestBase
             salary = 1200m, salaryType = "Monthly", hireDate = "2026-01-01T00:00:00Z"
         });
 
-        //ASSERT
+        // ASSERT
         resp2.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
         var count = await WithDbContextAsync(db =>
@@ -113,11 +113,11 @@ public class EmployeeCreateTests : IntegrationTestBase
     [Fact]
     public async Task CreateEmployee_WithNonexistentDepartment_Returns404()
     {
-        //ARRANGE
+        // ARRANGE
         var (_, seedPositionId) = await SeedReferenceDataAsync();
         var missingDepartmentId = Guid.NewGuid();
 
-        //ACT
+        // ACT
         var resp = await Client.PostAsJsonAsync("v1/employees", new
         {
             firstName = "Emp", lastName = "Test", email = "emp@test.com",
@@ -125,7 +125,7 @@ public class EmployeeCreateTests : IntegrationTestBase
             salary = 1000m, salaryType = "Monthly", hireDate = "2026-01-01T00:00:00Z"
         });
 
-        //ASSERT
+        // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         var problem = await resp.Content.ReadFromJsonAsync<ProblemDetails>(Json);
