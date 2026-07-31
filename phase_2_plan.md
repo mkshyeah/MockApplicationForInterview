@@ -1,4 +1,4 @@
-
+  
 # Фаза 2 — CQRS / MediatR + Feature: Leave / Time-Off Management
 
 > Первая фаза, где технологию тянет реальная фича (принцип «no tech in a vacuum»).
@@ -49,7 +49,7 @@ leave-workflow (validate → balance check → state transition → audit). На
 |---|---|---|---|
 | 1 (2a) | Подключить MediatR + мигрировать `FireEmployee` → command+handler | `feat/mediatr-fire-employee` | ✅ Готово |
 | 2 (2a) | `ValidationBehavior` + мигрировать остальные write-эндпоинты, удалить `ValidationFilter` | `refactor/commands-validation-behavior` | ✅ Готово |
-| 3 (2a) | Мигрировать read-эндпоинты → queries | `refactor/queries-to-mediatr` | ⬜ Не начат |
+| 3 (2a) | Мигрировать read-эндпоинты → queries | `refactor/queries-to-mediatr` | ✅ Готово |
 | 4 (2b) | Feature: Leave / Time-Off management (vertical slice) | `feat/leave-management` | ⬜ Не начат |
 
 > 2a = блоки 1–3 (механика на знакомой земле). 2b = блок 4 (реальная фича, ради которой всё и затевается).
@@ -142,32 +142,91 @@ leave-workflow (validate → balance check → state transition → audit). На
 
 ## Блок 4 (2b) — Feature: Leave / Time-Off Management
 
+> Ветка: `feat/leave-management`. Это фича, ради которой затевался MediatR — первый настоящий
+> многошаговый use case. Здесь behaviors/команды перестают быть плумбингом ради плумбинга.
+
 ### Суть фичи
 Заменить примитивный on/off-vacation toggle реальным workflow: сотрудники **подают заявки на отпуск**
-(тип, диапазон дат), менеджеры **одобряют/отклоняют**, система ведёт **баланс отпусков**.
+(тип, диапазон дат), менеджер **одобряет/отклоняет**, система ведёт **баланс отпусков** и списывает его
+при одобрении.
 
-### Новые сущности (эскиз, детали — при заходе в блок)
-- `LeaveRequest` (тип, даты, статус: Pending/Approved/Rejected, аудит кто/когда).
-- `LeaveBalance` (остаток дней по сотруднику/типу).
-- `LeaveType` enum.
+### Scope-развилки — ЗАФИКСИРОВАНЫ (взяты рекомендации, не пересматривать без причины)
+1. **Длительность = календарные дни** (`(EndDate - StartDate).Days + 1`). Рабочие дни/праздники —
+   осознанно ВНЕ scope (тянет календарь, отдельная фича).
+2. **Actor/auth НЕ вводим** (no tech in a vacuum). Approve/reject без реального актора; `DecidedBy` —
+   опциональная заглушка (nullable). Auth придёт, когда его потянет реальная фича.
+3. **Баланс = фиксированный entitlement на тип** (сид при создании сотрудника или лениво при первом
+   запросе). Accrual (помесячное начисление) — ВНЕ scope.
+4. **Overlap-проверка (пересечение дат заявок) — ВНЕ MVP блока.** Добавим как бизнес-правило потом,
+   отдельной гранулой. В первый заход не тащим, чтобы не разъехаться по scope.
 
-### Почему тех именно здесь
-Первый по-настоящему многошаговый use case: validate → balance check → state transition → audit.
-Строим как **эталонный vertical slice** — здесь pipeline behaviors доказывают свою ценность на реальной сложности.
+### Новые сущности (эскиз)
+- `LeaveRequest`: `Id`, `EmployeeId`, `LeaveType`, `StartDate`, `EndDate`, `Status`,
+  аудит — `RequestedAt`, `DecidedAt?`, `DecidedBy?`. FK-скаляр `EmployeeId` → `required Guid`;
+  навигация `Employee?` — nullable (конвенции домена из CLAUDE.md).
+- `LeaveBalance`: `Id`, `EmployeeId`, `LeaveType`, `RemainingDays` (или `Entitled`/`Used` — реши одно).
+- `LeaveType` enum: напр. `Annual`, `Sick`, `Unpaid` — **без нулевого члена** (`= 1` и далее), чтобы
+  `IsInEnum()` отсекал незаданное (та же ловушка, что с `SalaryType`).
+- `LeaveStatus` enum: `Pending`, `Approved`, `Rejected` — тоже с 1.
 
-### Скрытая сложность
-Конкурентные одобрения / double-spend баланса → **optimistic concurrency** (EF Core concurrency token).
-Approval — это **state machine**, а не булев флаг: продумать разрешённые переходы.
+### Workflow = state machine (а не булев флаг)
+```
+submit  → Pending
+approve → Pending → Approved   (+ списать баланс на длительность заявки)
+reject  → Pending → Rejected   (баланс НЕ трогаем)
+```
+Переход разрешён **только из `Pending`**. Approve/reject уже решённой заявки → `BusinessRuleException` (422).
+Это осознанная проверка текущего состояния, а не `if (approved) return`.
+
+### Порядок реализации ВНУТРИ блока (не начинать с approve!)
+```
+4.1 Домен: LeaveRequest, LeaveBalance, enums + EF-конфигурации + миграция (--environment local)
+4.2 SubmitLeaveRequestCommand → Pending. Проводим сквозь весь стек
+    (команда → валидатор → хендлер → контроллер → unit + integration). Знакомая механика на новой сущности.
+4.3 GetLeaveRequests / GetLeaveBalance queries (симметрия read-стороны).
+4.4 ApproveLeaveCommand — многошаговый: загрузить → проверить Pending → проверить баланс →
+    Approved + списать баланс → SaveChanges. Здесь concurrency (см. ниже).
+4.5 RejectLeaveCommand — простой переход Pending → Rejected.
+```
+**Почему такой порядок:** сначала домен + submit (разложить базу на знакомой механике), потом approve —
+иначе утонешь в concurrency, не имея каркаса.
+
+### Многошаговый хендлер (где окупается MediatR)
+`ApproveLeaveCommandHandler`: validate (behavior) → загрузить заявку → состояние `Pending`? →
+баланс хватает? → перевести в `Approved` → списать баланс → `SaveChangesAsync`. Первая реальная цепочка,
+на которой pipeline behaviors оправданы.
+
+### Скрытая сложность — double-spend баланса
+Гонки: два одобрения одной заявки одновременно, либо параллельные одобрения разных заявок одного сотрудника
+за пределы баланса. Решение — **optimistic concurrency**: concurrency-токен на `LeaveBalance`
+(в Postgres удобно `xmin` как rowversion, `IsRowVersion()` в конфигурации). При конфликте
+`DbUpdateConcurrencyException` → мапить в **409 Conflict** (`ConflictException` уже есть).
+Это тот случай, где токен закрывает реальный баг, а не «для галочки».
+
+### Транзакционная граница
+`LeaveRequest.Status` и `LeaveBalance.RemainingDays` меняются **вместе** в approve → один
+`SaveChangesAsync` через существующий UoW. Разъедутся (статус Approved, баланс не списан) — данные врут.
 
 ### Ловушки
 - Не смешивать «F2 idempotency keys» из бэклога с этой фичей (F-метки ≠ номера фаз).
-- Баланс и заявка меняются вместе → транзакционная граница (UoW уже есть).
-- Тесты value-first: проверять исходы workflow (одобрение списывает баланс, двойное одобрение не проходит),
-  а не «хендлер вызвался».
+- Валидатор `SubmitLeaveRequestCommand`: `StartDate <= EndDate`, даты не в прошлом (реши правило),
+  `LeaveType` через `IsInEnum()`. Длительность в валидаторе не проверяем против баланса — это бизнес-правило
+  хендлера (валидатор не ходит в БД).
+- Баланс списывается **только** при approve, **только** из `Pending`. Reject/повторный approve баланс не трогают.
+- Concurrency-токен нужен на сущности, где реальный конфликт (`LeaveBalance`), — не «на всякий случай» везде.
+- Тесты value-first: «approve списывает баланс на длительность», «двойной approve → 422/409, баланс списан один раз»,
+  «approve при нехватке баланса → отказ, статус не меняется», «reject баланс не трогает». Concurrency —
+  интеграционным тестом (две параллельные approve → одна 409).
 
 ### Что гуглить
 `vertical slice architecture`, `approval workflow state machine`, `EF Core optimistic concurrency token`,
-`EF Core rowversion xmin postgres`, `CQRS command handler transaction`.
+`npgsql xmin concurrency token IsRowVersion`, `DbUpdateConcurrencyException handling`,
+`EF Core owned vs separate entity`, `CQRS command handler transaction`.
+
+### Мелкий долг, замеченный по ходу (в backlog, НЕ в этом блоке)
+`ISalaryRepository.GetHistoryAsync` возвращает `IEnumerable<Salary>`, а `GetFilteredAsync` — `(IReadOnlyList, int)`.
+Несимметрично → `.ToList().AsReadOnly()` в `GetSalaryHistoryQueryHandler`. Унификация возвращаемых коллекций
+репозиториев — отдельная F-гранула, не Leave.
 
 ---
 

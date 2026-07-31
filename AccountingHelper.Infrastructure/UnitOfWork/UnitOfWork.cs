@@ -11,19 +11,25 @@ public class UnitOfWork : IUnitOfWork
     public ISalaryRepository Salaries { get; }
     public IDepartmentRepository Departments { get; }
     public IPositionRepository Positions { get; }
+    public ILeaveRequestRepository LeaveRequests { get; }
+    public ILeaveBalanceRepository LeaveBalances { get; }
 
     public UnitOfWork(
         ApplicationDbContext dbContext,
         IEmployeeRepository employees,
         ISalaryRepository salaries,
         IDepartmentRepository departments,
-        IPositionRepository positions)
+        IPositionRepository positions,
+        ILeaveRequestRepository leaveRequests,
+        ILeaveBalanceRepository leaveBalances)
     {
         _dbContext = dbContext;
         Employees = employees;
         Salaries = salaries;
         Departments = departments;
         Positions = positions;
+        LeaveRequests = leaveRequests;
+        LeaveBalances = leaveBalances;
     }
     
     public async Task SaveChangesAsync(CancellationToken ct) 

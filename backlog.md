@@ -142,3 +142,19 @@ Effort: **S** (~days), **M** (~1–2 wks), **L** (~3–4 wks), **XL** (cross-cut
   fairness; genuine tax-rule versioning for flags). Don't lead with either.
 - **Kubernetes** stays a reading-only stretch (already in Phase 8); **gRPC stays rejected** —
   nothing in F1–F12 resurrects it.
+
+«унифицировать возвращаемые коллекции репозиториев»
+
+"избавиться от IRepository"
+
+"переопределить SaveChangesAsync в контексте и пробежаться по ChangeTracker.Entries()"
+
+"на 4.4: между GetAsync и DebitAsync теоретически может вклиниться чужое списание, и токен её не поймает — второе чтение уже увидит новое значение. Закрывается это CHECK (remaining_days >= 0) на уровне схемы: даже если код ошибётся, БД не даст остатку уйти в минус. Та же логика, что с уникальным индексом. Но это разговор для 4.4, не тащи в 4.2."
+
+" F-xx. Перевести репозитории на tracked-обновления.                                                                                                                                                         
+▎ Причина: detached ToEntity() + State = Modified перезаписывает поля, которых нет в доменной модели (CreatedAt — подтверждённый баг, -infinity в БД; xmin — не работал бы вовсе). Симптом закрыт через      
+▎ AfterSaveBehavior.Ignore, корень — нет.                                                                                                                                                                    
+▎ Объём: IRepository<T>.Update → async, ApplyTo(model, entity) в Infrastructure/Mapping, 4 репозитория, 3 хендлера, юнит-тесты.                                                                              
+▎ Образец: SalaryRepository.CloseAsync, ILeaveBalanceRepository.DebitAsync (написаны в блоке 4).                                                                                                             
+▎ Триггер: после блока 4, до Phase 3."
+
