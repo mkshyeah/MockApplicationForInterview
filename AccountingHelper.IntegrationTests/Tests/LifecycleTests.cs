@@ -134,6 +134,44 @@ public class LifecycleTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task EmployeeTransitions_DoNotOverwriteCreatedAt()
+    {
+        // ARRANGE
+        var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
+
+        var body = await CreateEmployeeAsync(seedDepartmentId, seedPositionId);
+
+        var createdAt = await ReadCreatedAtAsync(body.Id);
+        createdAt.Should().NotBe(default, "created_at должен быть проставлен при вставке");
+
+        // ACT + ASSERT
+        (await Client.PatchAsync($"v1/employees/{body.Id}/on-vacation", content: null))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadCreatedAtAsync(body.Id)).Should()
+            .Be(createdAt, "уход в отпуск не меняет дату создания сотрудника");
+
+        (await Client.PatchAsync($"v1/employees/{body.Id}/off-vacation", content: null))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadCreatedAtAsync(body.Id)).Should()
+            .Be(createdAt, "возвращение из отпуска не меняет дату создания сотрудника");
+
+        (await Client.PatchAsync($"v1/employees/{body.Id}/fire", content: null))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadCreatedAtAsync(body.Id)).Should()
+            .Be(createdAt, "увольнение не меняет дату создания сотрудника");
+    }
+
+    private Task<DateTime> ReadCreatedAtAsync(Guid employeeId)
+    {
+        return WithDbContextAsync(db => db
+            .Set<EmployeeEntity>()
+            .AsNoTracking()
+            .Where(e => e.Id == employeeId)
+            .Select(e => e.CreatedAt)
+            .SingleAsync());
+    }
+
+    [Fact]
     public async Task SendOffVacation_WhenNotOnVacation_Returns422()
     {
         // ARRANGE

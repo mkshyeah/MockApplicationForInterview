@@ -1,6 +1,7 @@
 ﻿using AccountingHelper.Domain.Enums;
 using AccountingHelper.Infrastructure.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace AccountingHelper.Infrastructure.Contexts;
 
@@ -16,11 +17,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         base.OnModelCreating(modelBuilder);
         
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
-
+        
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            var properties = entityType.GetProperties()
-                .Where(p => p.ClrType == typeof(DateTime) || p.ClrType == typeof(DateTime?));
-        }
+            entityType.FindProperty("CreatedAt")?.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
     }
 }
