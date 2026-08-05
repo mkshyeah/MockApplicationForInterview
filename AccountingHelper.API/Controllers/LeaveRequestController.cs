@@ -1,6 +1,7 @@
 using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.LeaveRequests.Queries.GetLeaveRequest;
+using AccountingHelper.Application.Features.LeaveRequests.Queries.GetLeaveRequests;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
 using MediatR;
@@ -19,6 +20,18 @@ public class LeaveRequestController : ControllerBase
     public LeaveRequestController(ISender sender)
     {
         _sender = sender;
+    }
+
+    [HttpGet("employees/{employeeId:guid}/leave-requests")]
+    [ProducesResponseType(typeof(IReadOnlyList<LeaveRequestResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<LeaveRequestResponse>>> GetLeaveRequests(
+        Guid employeeId,
+        CancellationToken ct = default)
+    {
+        var leaveRequests = await _sender.Send(new GetLeaveRequestsQuery(employeeId), ct);
+        
+        return Ok(leaveRequests.Select(leaveRequest => leaveRequest.ToResponse()).ToList());
     }
 
     [HttpGet("leave-requests/{id:guid}")]
