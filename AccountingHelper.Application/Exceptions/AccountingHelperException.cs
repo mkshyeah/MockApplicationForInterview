@@ -18,10 +18,10 @@ public class AccountingHelperException : Exception
 public class NotFoundException : AccountingHelperException
 {
     public NotFoundException(string resource, object id) 
-        : base($"{resource} with ID '{id}' was not found", 404, "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4") { }
+        : base($"{resource} with ID '{id}' was not found", 404, ProblemTypes.NotFound) { }
     
     public NotFoundException(string message)
-        : base(message, 404, "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.4") { }
+        : base(message, 404, ProblemTypes.NotFound) { }
 }
 
 public class ValidationException : AccountingHelperException
@@ -30,14 +30,17 @@ public class ValidationException : AccountingHelperException
 
     public ValidationException(string field, string message)
         : base("One or more validation errors occurred.", 400,
-            "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1")
+            ProblemTypes.Validation)
     {
-        Errors = new Dictionary<string, string[]> { { field, new[] { message } } };
+        Errors = new Dictionary<string, string[]>
+        {
+            { field, new[] { message } }
+        };
     }
 
     public ValidationException(IEnumerable<FluentValidation.Results.ValidationFailure> failures)
         : base("One or more validation errors occurred.", 400,
-            "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1")
+            ProblemTypes.Validation)
     {
         Errors = failures
             .GroupBy(e => e.PropertyName, e => e.ErrorMessage)
@@ -48,12 +51,12 @@ public class ValidationException : AccountingHelperException
 public class ConflictException : AccountingHelperException
 {
     public ConflictException(string message) 
-        : base(message, 409, "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.8") { }
+        : base(message, 409, ProblemTypes.Conflict) { }
 }
 public class BusinessRuleException : AccountingHelperException
 {
     public BusinessRuleException(string message) 
-        : base(message, 422, "https://datatracker.ietf.org/doc/html/rfc2518#section-10.3") { }
+        : base(message, 422, ProblemTypes.BusinessRule) { }
 }
 
 

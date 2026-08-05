@@ -1,4 +1,4 @@
-using System.Diagnostics.Eventing.Reader;
+using System.Text.Json;
 using AccountingHelper.Application.Exceptions;
 using AccountingHelper.Domain.Interfaces;
 using Microsoft.AspNetCore.Diagnostics;
@@ -9,35 +9,47 @@ namespace AccountingHelper.API.Middleware;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {
+    public const string ProblemJsonContentType = "application/problem+json";
+
     private readonly ILogger<GlobalExceptionHandler> _logger;
-    private readonly ICorrelationIdAccessor _correlationIdAccessor;
     private readonly IHostEnvironment _environment;
-    
+
     public GlobalExceptionHandler(
         ILogger<GlobalExceptionHandler> logger,
-        ICorrelationIdAccessor correlationIdAccessor,
         IHostEnvironment environment)
     {
         _logger = logger;
-        _correlationIdAccessor = correlationIdAccessor;
         _environment = environment;
     }
-    
+
     public async ValueTask<bool> TryHandleAsync(
         HttpContext context,
         Exception exception,
         CancellationToken ct)
     {
-        var correlationId = _correlationIdAccessor.CorrelationId;
+        // AddExceptionHandler registers this handler as a singleton, so a scoped
+        // ICorrelationIdAccessor injected through the constructor would be captured from the
+        // root scope — the instance no middleware ever writes to. Resolve it per request instead.
+        var correlationId = context.RequestServices
+            .GetRequiredService<ICorrelationIdAccessor>()
+            .CorrelationId;
 
         LogException(exception, correlationId, context);
 
         var problemDetails = CreateProblemResponse(exception, correlationId, context);
         
         context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
-        context.Response.ContentType = "application/problem+json";
 
-        await context.Response.WriteAsJsonAsync(problemDetails, problemDetails.GetType(), ct);
+        // the content type has to be passed to WriteAsJsonAsync itself: setting
+        // Response.ContentType beforehand is overwritten with "application/json" by the call
+        await context.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            // the cast picks the JsonSerializerOptions overload over the JsonSerializerContext one;
+            // null means "use the options registered in DI"
+            (JsonSerializerOptions?)null,
+            ProblemJsonContentType,
+            ct);
 
         return true;
         
@@ -105,7 +117,7 @@ public class GlobalExceptionHandler : IExceptionHandler
                     Title = "Request Cancelled",
                     Detail = "The request was cancelled by the client.",
                     Status = 499, 
-                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5"
+                    Type = ProblemTypes.Cancelled
                 };
                 break;
             default:
@@ -113,7 +125,7 @@ public class GlobalExceptionHandler : IExceptionHandler
                 {
                     Title = "Internal Server Error",
                     Status = StatusCodes.Status500InternalServerError,
-                    Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1",
+                    Type = ProblemTypes.InternalServerError,
                     Detail = _environment.IsDevelopment() 
                         ? exception.Message 
                         : "An unexpected error occurred. Please try again later."

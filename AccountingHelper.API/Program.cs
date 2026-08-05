@@ -35,6 +35,12 @@ try
         .AddInfrastructureServices(builder.Configuration)
         .AddApplicationServices();
 
+    builder.Host.UseDefaultServiceProvider((ctx, o) =>
+    {
+        o.ValidateScopes = true;
+        o.ValidateOnBuild = true;
+    });
+
     await using var app = builder.Build();
 
     app.UseExceptionHandler();
