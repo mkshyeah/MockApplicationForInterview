@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Infrastructure.Data.Entities;
 using AccountingHelper.IntegrationTests.Setup;
@@ -133,23 +132,28 @@ public class EmployeeCreateTests : IntegrationTestBase
         problem!.Detail.Should().ContainEquivalentOf("department");
     }
     
-    [Fact]
-    public async Task CreateEmployee_WhenSalaryTypeIsZero_ReturnsSingleValidationMessageForField()
+    [Theory]
+    [InlineData(0)]
+    [InlineData("Yearly")]
+    // "2" and "Hourly, Weekly" both resolve to Weekly via Enum.Parse — names only, no numbers,
+    // no bitwise combinations
+    [InlineData("2")]
+    [InlineData("Hourly, Weekly")]
+    public async Task CreateEmployee_WhenSalaryTypeIsUnknownValue_Returns400WithAllowedValues(object badSalaryType)
     {
-        // Arrange: тело валидно ВЕЗДЕ, кроме SalaryType = 0 — изолируем поле,
-        // чтобы проверять именно количество сообщений на нём, а не на других.
+        // Arrange
         var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
 
-        var body = new
+        var body = new Dictionary<string, object?>
         {
-            firstName = "John",
-            lastName = "Doe",
-            email = "john.doe@example.com",
-            positionId = seedPositionId,
-            salary = 5000m,
-            salaryType = 0,                 
-            departmentId = seedDepartmentId,
-            hireDate = "2020-01-01"
+            ["firstName"] = "John",
+            ["lastName"] = "Doe",
+            ["email"] = "john.doe@example.com",
+            ["positionId"] = seedPositionId,
+            ["salary"] = 5000m,
+            ["salaryType"] = badSalaryType,
+            ["departmentId"] = seedDepartmentId,
+            ["hireDate"] = "2020-01-01"
         };
 
         // Act
@@ -157,12 +161,23 @@ public class EmployeeCreateTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        
-        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
-        problem.Should().NotBeNull();
 
-        problem!.Errors.Should().ContainKey(nameof(CreateEmployeeRequest.SalaryType));
-        problem.Errors[nameof(CreateEmployeeRequest.SalaryType)]
-            .Should().HaveCount(1);         
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(Json);
+        problem.Should().NotBeNull();
+        
+        // same envelope as a FluentValidation failure, no traceId and no noise about "request"
+        problem!.Title.Should().Be("Validation Failed");
+        problem.Extensions.Should().ContainKey("correlationId");
+        problem.Errors.Should().ContainSingle();
+
+        problem.Errors.Should().ContainKey("salaryType");
+
+        // exact match on purpose: it also pins that no CLR type name and no
+        // "Path: ... | LineNumber: ..." tail from the serializer leaks into the contract
+        problem.Errors["salaryType"].Should().ContainSingle()
+            .Which.Should().Be("must be one of: Hourly, Monthly, Weekly, Daily");
+
+        var employees = await WithDbContextAsync(db => db.Set<EmployeeEntity>().ToListAsync());
+        employees.Should().BeEmpty();
     }
 }

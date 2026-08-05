@@ -10,7 +10,6 @@ using Xunit;
 
 namespace AccountingHelper.IntegrationTests.Tests;
 
-[Collection("Integration")]
 public class SalaryChangeTests : IntegrationTestBase
 {
     public SalaryChangeTests(IntegrationFixture fixture) : base(fixture)

@@ -34,7 +34,7 @@ public class ValidationException : AccountingHelperException
     {
         Errors = new Dictionary<string, string[]>
         {
-            { field, new[] { message } }
+            { JsonPropertyName.FromPropertyPath(field), new[] { message } }
         };
     }
 
@@ -42,8 +42,11 @@ public class ValidationException : AccountingHelperException
         : base("One or more validation errors occurred.", 400,
             ProblemTypes.Validation)
     {
+        // keys are camelCased here rather than through ValidatorOptions.Global.PropertyNameResolver:
+        // that resolver also rewrites {PropertyName} inside default message texts, and it is global
+        // mutable state. This keeps the blast radius to one method.
         Errors = failures
-            .GroupBy(e => e.PropertyName, e => e.ErrorMessage)
+            .GroupBy(e => JsonPropertyName.FromPropertyPath(e.PropertyName), e => e.ErrorMessage)
             .ToDictionary(failureGroup => failureGroup.Key, failureGroup => failureGroup.ToArray());
     }
 }

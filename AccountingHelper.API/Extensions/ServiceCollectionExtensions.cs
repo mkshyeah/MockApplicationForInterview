@@ -1,5 +1,5 @@
-using System.Text.Json.Serialization;
 using AccountingHelper.API.Middleware;
+using AccountingHelper.API.Serialization;
 using AccountingHelper.Domain.Interfaces;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +16,10 @@ public static class ServiceCollectionExtensions
 
         services.AddControllers()
             .AddJsonOptions(options =>
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+                options.JsonSerializerOptions.Converters.Add(new StrictEnumConverterFactory()))
+            // model-binding failures must come back in the same envelope as FluentValidation ones
+            .ConfigureApiBehaviorOptions(options =>
+                options.InvalidModelStateResponseFactory = InvalidModelStateResponse.Create);
         
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();

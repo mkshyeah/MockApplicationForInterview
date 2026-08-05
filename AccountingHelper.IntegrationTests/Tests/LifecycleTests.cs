@@ -78,7 +78,7 @@ public class LifecycleTests : IntegrationTestBase
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         var problem = await resp.Content.ReadFromJsonAsync<ProblemDetails>(Json);
-        problem!.Detail.Should().ContainEquivalentOf("was not found");
+        problem!.Detail.Should().ContainEquivalentOf("employee");
     }
 
     [Fact]
