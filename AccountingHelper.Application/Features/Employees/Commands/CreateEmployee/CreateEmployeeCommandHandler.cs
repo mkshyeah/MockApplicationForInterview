@@ -59,6 +59,17 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             }
         };
         
+        foreach (var type in Enum.GetValues<LeaveType>())
+        {
+            _unitOfWork.LeaveBalances.Add(new LeaveBalance
+            {
+                Id = Guid.NewGuid(),
+                EmployeeId = employeeId,
+                LeaveType = type,
+                RemainingDays = LeaveEntitlement.DaysFor(type)
+            });
+        }
+        
         _unitOfWork.Employees.Add(employee);
         await _unitOfWork.SaveChangesAsync(ct);
         

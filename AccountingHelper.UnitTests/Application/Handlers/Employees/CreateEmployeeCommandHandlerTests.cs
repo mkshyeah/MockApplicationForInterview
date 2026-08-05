@@ -18,6 +18,7 @@ public class CreateEmployeeCommandHandlerTests
     private readonly Mock<IEmployeeRepository> _employeeRepositoryMock;
     private readonly Mock<IDepartmentRepository> _departmentRepositoryMock;
     private readonly Mock<IPositionRepository> _positionRepositoryMock;
+    private readonly Mock<ILeaveBalanceRepository> _leaveBalanceRepositoryMock;
     private readonly Mock<ILogger<CreateEmployeeCommandHandler>> _loggerMock;
     private readonly CreateEmployeeCommandHandler _handler;
 
@@ -27,11 +28,13 @@ public class CreateEmployeeCommandHandlerTests
         _employeeRepositoryMock = new Mock<IEmployeeRepository>();
         _departmentRepositoryMock = new Mock<IDepartmentRepository>();
         _positionRepositoryMock = new Mock<IPositionRepository>();
+        _leaveBalanceRepositoryMock = new Mock<ILeaveBalanceRepository>();
         _loggerMock = new Mock<ILogger<CreateEmployeeCommandHandler>>();
 
         _unitOfWorkMock.Setup(u => u.Employees).Returns(_employeeRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.Departments).Returns(_departmentRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.Positions).Returns(_positionRepositoryMock.Object);
+        _unitOfWorkMock.Setup(u => u.LeaveBalances).Returns(_leaveBalanceRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -170,6 +173,63 @@ public class CreateEmployeeCommandHandlerTests
         salary.Type.Should().Be(command.SalaryType);
 
         result.Should().BeSameAs(added);
+
+        _unitOfWorkMock.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenDataIsValid_ShouldSeedLeaveBalancesForEveryLeaveType()
+    {
+        // ARRANGE
+        var command = ValidCommand();
+
+        _employeeRepositoryMock
+            .Setup(r => r.ExistsByEmailAsync(command.Email, Ct))
+            .ReturnsAsync(false);
+
+        _departmentRepositoryMock
+            .Setup(r => r.GetByIdAsync(command.DepartmentId, Ct))
+            .ReturnsAsync(TestData.ValidDepartment(command.DepartmentId));
+
+        _positionRepositoryMock
+            .Setup(r => r.GetByIdAsync(command.PositionId, Ct))
+            .ReturnsAsync(TestData.ValidPosition(command.PositionId));
+
+        Employee? added = null;
+        _employeeRepositoryMock
+            .Setup(r => r.Add(It.IsAny<Employee>()))
+            .Callback<Employee>(e => added = e);
+
+        var addedBalances = new List<LeaveBalance>();
+        _leaveBalanceRepositoryMock
+            .Setup(r => r.Add(It.IsAny<LeaveBalance>()))
+            .Callback<LeaveBalance>(b => addedBalances.Add(b));
+
+        // the handler re-reads the entity after saving
+        _employeeRepositoryMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), Ct))
+            .ReturnsAsync(() => added);
+
+        // ACT
+        await _handler.Handle(command, Ct);
+
+        // ASSERT
+        added.Should().NotBeNull();
+        var employeeId = added!.Id;
+
+        // Entitlements are spelled out rather than read from LeaveEntitlement.DaysFor:
+        // the test must fail when the numbers change or a new LeaveType is left unseeded.
+        addedBalances
+            .Select(b => new { b.LeaveType, b.RemainingDays })
+            .Should().BeEquivalentTo(new[]
+            {
+                new { LeaveType = LeaveType.Annual, RemainingDays = 28 },
+                new { LeaveType = LeaveType.Sick, RemainingDays = 14 },
+                new { LeaveType = LeaveType.Unpaid, RemainingDays = 30 }
+            });
+
+        addedBalances.Should().OnlyContain(b => b.EmployeeId == employeeId);
+        addedBalances.Select(b => b.Id).Should().OnlyHaveUniqueItems().And.NotContain(Guid.Empty);
 
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }
