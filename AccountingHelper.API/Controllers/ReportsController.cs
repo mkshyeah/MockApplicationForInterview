@@ -15,6 +15,7 @@ namespace AccountingHelper.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("v{version:apiVersion}/reporting")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public class ReportsController : ControllerBase
 {
     private readonly ISender _sender;
@@ -27,7 +28,7 @@ public class ReportsController : ControllerBase
     
     [HttpGet("employees/count")]
     [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetEmployeeCount(CancellationToken ct=default)
+    public async Task<ActionResult<int>> GetEmployeeCount(CancellationToken ct=default)
     {
         var count = await _sender.Send(new GetEmployeeCountQuery(), ct);
         return Ok(count);
@@ -35,8 +36,8 @@ public class ReportsController : ControllerBase
 
     [HttpGet("employees/{id:guid}/status")]
     [ProducesResponseType(typeof(EmployeeStatus), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetEmployeeStatus(Guid id, CancellationToken ct=default)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<EmployeeStatus>> GetEmployeeStatus(Guid id, CancellationToken ct=default)
     {
         var employeeStatus = await _sender.Send(new GetEmployeeStatusQuery(id), ct);
         
@@ -45,7 +46,7 @@ public class ReportsController : ControllerBase
 
     [HttpGet("salaries")]
     [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSalaries(CancellationToken ct=default)
+    public async Task<ActionResult<decimal>> GetSalaries(CancellationToken ct=default)
     {
         var salaries = await _sender.Send(new GetTotalSalariesQuery(), ct);
 
@@ -54,9 +55,9 @@ public class ReportsController : ControllerBase
 
     [HttpGet("employees/{id:guid}/salary")]
     [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetSalaryByType(
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<decimal>> GetSalaryByType(
         Guid id, 
         [FromQuery][Required] SalaryType type,
         CancellationToken ct=default)
@@ -68,9 +69,8 @@ public class ReportsController : ControllerBase
 
     [HttpGet("employees/{id:guid}/taxes")]
     [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CalculateTaxes(Guid id, CancellationToken ct=default)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<decimal>> CalculateTaxes(Guid id, CancellationToken ct=default)
     {
         var taxes = await _sender.Send(new GetCalculateTaxesQuery(id), ct);
         

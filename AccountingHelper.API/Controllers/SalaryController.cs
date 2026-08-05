@@ -12,6 +12,7 @@ namespace AccountingHelper.API.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("v{version:apiVersion}/employees/{employeeId:guid}/salaries")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public class SalaryController : ControllerBase
 {
     private readonly ISender _sender;
@@ -23,11 +24,11 @@ public class SalaryController : ControllerBase
     }
 
     [HttpPut]
-    [ProducesResponseType(typeof(SalaryResponse), StatusCodes.Status200OK)] 
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ChangeSalary(
+    [ProducesResponseType(typeof(SalaryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<SalaryResponse>> ChangeSalary(
         Guid employeeId,
         [FromBody] ChangeSalaryRequest request,
         CancellationToken ct = default)
@@ -38,9 +39,9 @@ public class SalaryController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<SalaryResponse>), StatusCodes.Status200OK)] 
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetSalaryHistory(Guid employeeId, CancellationToken ct = default)
+    [ProducesResponseType(typeof(IReadOnlyList<SalaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<SalaryResponse>>> GetSalaryHistory(Guid employeeId, CancellationToken ct = default)
     {
         var salaries = await _sender.Send(new GetSalaryHistoryQuery(employeeId), ct);
 
