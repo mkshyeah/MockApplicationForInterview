@@ -1,5 +1,6 @@
 using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
+using AccountingHelper.Application.Features.LeaveRequests.Commands.ApproveLeaveRequest;
 using AccountingHelper.Application.Features.LeaveRequests.Queries.GetLeaveRequest;
 using AccountingHelper.Application.Features.LeaveRequests.Queries.GetLeaveRequests;
 using AccountingHelper.Application.Mapping;
@@ -59,6 +60,19 @@ public class LeaveRequestController : ControllerBase
         var leaveRequest = await _sender.Send(request.ToCommand(employeeId), ct);
         
         return CreatedAtAction(nameof(GetLeaveRequest), new { id = leaveRequest.Id }, leaveRequest.ToResponse());
+    }
+
+    [HttpPatch("leave-requests/{id:guid}/approve")]
+    [ProducesResponseType(typeof(LeaveRequestResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<LeaveRequestResponse>> ApproveLeaveRequest(
+        Guid id,
+        CancellationToken ct = default)
+    {
+        var leaveRequest = await _sender.Send(new ApproveLeaveRequestCommand(id), ct);
+        return Ok(leaveRequest.ToResponse());
     }
     
     

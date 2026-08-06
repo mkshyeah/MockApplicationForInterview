@@ -38,7 +38,7 @@ public class LeaveRequestRepository : ILeaveRequestRepository
         _dbContext.LeaveRequests.Add(leaveRequest.ToEntity());
     }
 
-    public async Task UpdateAsync(LeaveRequest model, CancellationToken ct)
+    public async Task ApplyDecisionAsync(LeaveRequest model, CancellationToken ct)
     {
         var entity = await _dbContext.LeaveRequests.
                 FirstOrDefaultAsync(x => x.Id == model.Id, ct);

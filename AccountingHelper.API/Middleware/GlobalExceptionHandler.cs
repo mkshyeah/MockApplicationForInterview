@@ -3,6 +3,7 @@ using AccountingHelper.Application.Exceptions;
 using AccountingHelper.Domain.Interfaces;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace AccountingHelper.API.Middleware;
@@ -72,6 +73,13 @@ public class GlobalExceptionHandler : IExceptionHandler
                 "Application exception occurred. Context: {@Context}",
                 logContext);
         }
+        else if (exception is DbUpdateConcurrencyException)
+        {
+            _logger.LogWarning(
+                exception,
+                "Optimistic concurrency conflict. Context: {@Context}",
+                logContext);
+        }
         else if (exception is OperationCanceledException)
         {
             _logger.LogInformation("Request was cancelled by the client. CorrelationId: {CorrelationId}", correlationId);
@@ -118,6 +126,15 @@ public class GlobalExceptionHandler : IExceptionHandler
                     Detail = "The request was cancelled by the client.",
                     Status = 499, 
                     Type = ProblemTypes.Cancelled
+                };
+                break;
+            case DbUpdateConcurrencyException:
+                problemDetails = new ProblemDetails
+                {
+                    Title = "Conflict",
+                    Detail = "The resource was modified by another request. Retry.",
+                    Status = StatusCodes.Status409Conflict,
+                    Type = ProblemTypes.Conflict
                 };
                 break;
             default:
