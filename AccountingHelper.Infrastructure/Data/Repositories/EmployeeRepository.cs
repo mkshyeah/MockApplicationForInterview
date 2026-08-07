@@ -13,28 +13,6 @@ public class EmployeeRepository : IEmployeeRepository
 {
    private readonly ApplicationDbContext _dbContext;
    public EmployeeRepository(ApplicationDbContext dbContext) => _dbContext = dbContext;
-   
-   public async Task<IEnumerable<Employee>> GetAllAsync(
-      int offset, int limit, SortDirection direction,
-      CancellationToken ct)
-   {
-      var query = _dbContext.Employees
-         .Include(e => e.Department)
-         .Include(e => e.Position)
-         .Include(e => e.Salaries)
-         .AsNoTracking();
-      
-      query = direction == SortDirection.Ascending 
-         ? query.OrderBy(e => e.CreatedAt)
-         : query.OrderByDescending(e => e.CreatedAt);
-      
-      var entities = await query
-         .Skip(offset)
-         .Take(limit)
-         .ToListAsync(ct);
-      
-      return entities.Select(e => e.ToModel());
-   }
 
    public async Task<Employee?> GetByIdAsync(Guid id, CancellationToken ct)
    {
@@ -50,13 +28,6 @@ public class EmployeeRepository : IEmployeeRepository
 
    public void Add(Employee model) => _dbContext.Employees.Add(model.ToEntity());
 
-   public void Update(Employee model)
-   {
-      var entity = model.ToEntity();
-      entity.UpdatedAt = DateTime.UtcNow;
-      _dbContext.Entry(entity).State = EntityState.Modified;
-   }
-   
    public async Task ApplyStatusAsync(Employee model,  CancellationToken ct)
    {
       var entity = await _dbContext.Employees.
@@ -70,14 +41,6 @@ public class EmployeeRepository : IEmployeeRepository
       entity.Status = model.Status;
       entity.TerminationDate = model.TerminationDate;
       entity.UpdatedAt = DateTime.UtcNow;
-   }
-
-   public async Task DeleteAsync(Guid id, CancellationToken ct)
-   {
-      var entity = await _dbContext.Employees.FindAsync([id], ct);
-
-      if (entity != null)
-         _dbContext.Employees.Remove(entity);
    }
 
    public async Task<int> CountAsync(CancellationToken ct)

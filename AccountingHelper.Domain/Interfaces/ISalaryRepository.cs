@@ -2,7 +2,7 @@ using AccountingHelper.Domain.Models;
 
 namespace AccountingHelper.Domain.Interfaces;
 
-public interface ISalaryRepository:IRepository<Salary>
+public interface ISalaryRepository
 {
     Task<Salary?> GetCurrentSalaryAsync(Guid employeeId, CancellationToken ct);
     
@@ -10,4 +10,5 @@ public interface ISalaryRepository:IRepository<Salary>
     Task<IReadOnlyList<Salary>> GetHistoryAsync(Guid employeeId, CancellationToken ct);
     
     Task CloseAsync (Guid salaryId, CancellationToken ct);
+    void Add(Salary model);
 }
