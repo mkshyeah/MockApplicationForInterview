@@ -57,6 +57,21 @@ public class EmployeeRepository : IEmployeeRepository
       _dbContext.Entry(entity).State = EntityState.Modified;
    }
    
+   public async Task ApplyStatusAsync(Employee model,  CancellationToken ct)
+   {
+      var entity = await _dbContext.Employees.
+         FirstOrDefaultAsync(x => x.Id == model.Id, ct);
+
+      if (entity is null)
+         throw new InvalidOperationException($"Employee '{model.Id}' was not found for update.");
+
+      // увольнение меняет два поля разом, поэтому TerminationDate — часть перехода статуса,
+      // а не отдельная забота; для on/off-vacation копирование безвредно, там значение не меняется
+      entity.Status = model.Status;
+      entity.TerminationDate = model.TerminationDate;
+      entity.UpdatedAt = DateTime.UtcNow;
+   }
+
    public async Task DeleteAsync(Guid id, CancellationToken ct)
    {
       var entity = await _dbContext.Employees.FindAsync([id], ct);

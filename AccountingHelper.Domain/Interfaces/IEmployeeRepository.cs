@@ -18,4 +18,6 @@ public interface IEmployeeRepository : IRepository<Employee>
         Guid? departmentId,
         EmployeeStatus? status,
         CancellationToken ct);
+
+    Task ApplyStatusAsync(Employee model, CancellationToken ct);
 }

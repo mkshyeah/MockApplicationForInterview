@@ -38,7 +38,7 @@ public class FireEmployeeCommandHandler : IRequestHandler<FireEmployeeCommand, E
         employee.TerminationDate = DateTime.UtcNow;
         employee.Status = EmployeeStatus.Fired;
         
-        _unitOfWork.Employees.Update(employee);
+        await _unitOfWork.Employees.ApplyStatusAsync(employee,ct);
         await _unitOfWork.SaveChangesAsync(ct);
         
         _logger.LogInformation("Employee {EmployeeId} was successfully fired. Associated active salary was closed.", request.Id);

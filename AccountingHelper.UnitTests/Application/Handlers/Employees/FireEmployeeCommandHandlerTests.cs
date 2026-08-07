@@ -116,7 +116,7 @@ public class FireEmployeeCommandHandlerTests
         _employeeRepositoryMock.Verify(r => r.GetByIdAsync(employeeId, Ct), Times.Once);
         _salaryRepositoryMock.Verify(r => r.GetCurrentSalaryAsync(employeeId, Ct), Times.Once);
         _salaryRepositoryMock.Verify(r => r.CloseAsync(salaryId, Ct), Times.Once);
-        _employeeRepositoryMock.Verify(r => r.Update(activeEmployee), Times.Once);
+        _employeeRepositoryMock.Verify(r => r.ApplyStatusAsync(activeEmployee, Ct), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }
 
@@ -145,7 +145,7 @@ public class FireEmployeeCommandHandlerTests
 
         _salaryRepositoryMock.Verify(
             r => r.CloseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
-        _employeeRepositoryMock.Verify(r => r.Update(activeEmployee), Times.Once);
+        _employeeRepositoryMock.Verify(r => r.ApplyStatusAsync(activeEmployee, Ct), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }
 }

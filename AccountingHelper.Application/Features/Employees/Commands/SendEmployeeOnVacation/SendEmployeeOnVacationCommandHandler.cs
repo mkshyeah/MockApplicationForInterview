@@ -30,7 +30,7 @@ public class SendEmployeeOnVacationCommandHandler : IRequestHandler<SendEmployee
 
         employee.Status = EmployeeStatus.OnVacation;
         
-        _unitOfWork.Employees.Update(employee);
+        await _unitOfWork.Employees.ApplyStatusAsync(employee,ct);
         await _unitOfWork.SaveChangesAsync(ct);
         
         return employee;

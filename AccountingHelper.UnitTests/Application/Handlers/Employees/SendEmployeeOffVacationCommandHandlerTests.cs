@@ -113,7 +113,7 @@ public class SendEmployeeOffVacationCommandHandlerTests
         result.Status.Should().Be(EmployeeStatus.Active);
 
         _employeeRepositoryMock.Verify(r => r.GetByIdAsync(employeeId, Ct), Times.Once);
-        _employeeRepositoryMock.Verify(r => r.Update(employeeOnVacation), Times.Once);
+        _employeeRepositoryMock.Verify(r => r.ApplyStatusAsync(employeeOnVacation, Ct), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }
 }
