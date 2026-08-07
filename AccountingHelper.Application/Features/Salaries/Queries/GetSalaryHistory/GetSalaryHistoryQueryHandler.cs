@@ -24,6 +24,6 @@ public class GetSalaryHistoryQueryHandler : IRequestHandler<GetSalaryHistoryQuer
         var salaries = await _unitOfWork.Salaries
             .GetHistoryAsync(request.EmployeeId, ct);
         
-        return salaries.ToList().AsReadOnly();
+        return salaries;
     }
 }

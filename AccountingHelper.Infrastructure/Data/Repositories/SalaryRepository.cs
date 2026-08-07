@@ -80,7 +80,7 @@ public class SalaryRepository : ISalaryRepository
             .SumAsync(s => s.Amount, ct);
     }
 
-    public async Task<IEnumerable<Salary>> GetHistoryAsync(Guid employeeId, CancellationToken ct)
+    public async Task<IReadOnlyList<Salary>> GetHistoryAsync(Guid employeeId, CancellationToken ct)
     {
         var entity = await _dbContext.Salaries
             .AsNoTracking()
@@ -88,7 +88,7 @@ public class SalaryRepository : ISalaryRepository
             .OrderByDescending(s => s.EffectiveDate)
             .ToListAsync(ct);
         
-        return entity.Select(s => s.ToModel());
+        return entity.Select(s => s.ToModel()).ToList();
     }
 
     public async Task CloseAsync(Guid salaryId, CancellationToken ct)
