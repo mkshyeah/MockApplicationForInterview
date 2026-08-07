@@ -50,7 +50,7 @@ leave-workflow (validate → balance check → state transition → audit). На
 | 1 (2a) | Подключить MediatR + мигрировать `FireEmployee` → command+handler | `feat/mediatr-fire-employee` | ✅ Готово |
 | 2 (2a) | `ValidationBehavior` + мигрировать остальные write-эндпоинты, удалить `ValidationFilter` | `refactor/commands-validation-behavior` | ✅ Готово |
 | 3 (2a) | Мигрировать read-эндпоинты → queries | `refactor/queries-to-mediatr` | ✅ Готово |
-| 4 (2b) | Feature: Leave / Time-Off management (vertical slice) | `feat/leave-management` | ⬜ Не начат |
+| 4 (2b) | Feature: Leave / Time-Off management (vertical slice) | `feat/leave-management` | ✅ Готово |
 
 > 2a = блоки 1–3 (механика на знакомой земле). 2b = блок 4 (реальная фича, ради которой всё и затевается).
 

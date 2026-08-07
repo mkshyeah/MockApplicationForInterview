@@ -1,6 +1,7 @@
 using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.LeaveRequests.Commands.ApproveLeaveRequest;
+using AccountingHelper.Application.Features.LeaveRequests.Commands.RejectLeaveRequest;
 using AccountingHelper.Application.Features.LeaveRequests.Queries.GetLeaveRequest;
 using AccountingHelper.Application.Features.LeaveRequests.Queries.GetLeaveRequests;
 using AccountingHelper.Application.Mapping;
@@ -75,6 +76,15 @@ public class LeaveRequestController : ControllerBase
         return Ok(leaveRequest.ToResponse());
     }
     
-    
-    
+    [HttpPatch("leave-requests/{id:guid}/reject")]
+    [ProducesResponseType(typeof(LeaveRequestResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<LeaveRequestResponse>> RejectLeaveRequest(
+        Guid id,
+        CancellationToken ct = default)
+    {
+        var leaveRequest = await _sender.Send(new RejectLeaveRequestCommand(id), ct);
+        return Ok(leaveRequest.ToResponse());
+    }
 }

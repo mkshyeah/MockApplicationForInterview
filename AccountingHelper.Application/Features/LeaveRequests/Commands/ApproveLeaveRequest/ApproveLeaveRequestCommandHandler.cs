@@ -18,7 +18,7 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
     {
         var leaveRequest = await _unitOfWork.LeaveRequests.GetByIdAsync(request.LeaveRequestId, ct);
         if (leaveRequest == null)
-            throw new NotFoundException("LeaveRequest", request.LeaveRequestId);
+            throw new NotFoundException("Leave request", request.LeaveRequestId);
         
         if (leaveRequest.Status != LeaveStatus.Pending)
             throw new BusinessRuleException(
