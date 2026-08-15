@@ -2,7 +2,7 @@ using AccountingHelper.Domain.Enums;
 
 namespace AccountingHelper.Infrastructure.Data.Entities;
 
-public class PositionEntity
+public class PositionEntity : ITimestamped
 {
     public Guid Id { get; set; }
     public required string Title { get; set; }

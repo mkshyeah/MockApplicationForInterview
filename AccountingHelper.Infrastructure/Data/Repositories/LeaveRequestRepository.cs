@@ -49,6 +49,5 @@ public class LeaveRequestRepository : ILeaveRequestRepository
         entity.Status = model.Status;
         entity.DecidedAt = model.DecidedAt;
         entity.DecidedBy = model.DecidedBy;
-        entity.UpdatedAt = DateTime.UtcNow;
     }
 }

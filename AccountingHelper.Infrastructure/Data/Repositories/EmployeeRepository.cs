@@ -40,7 +40,6 @@ public class EmployeeRepository : IEmployeeRepository
       // а не отдельная забота; для on/off-vacation копирование безвредно, там значение не меняется
       entity.Status = model.Status;
       entity.TerminationDate = model.TerminationDate;
-      entity.UpdatedAt = DateTime.UtcNow;
    }
 
    public async Task<int> CountAsync(CancellationToken ct)

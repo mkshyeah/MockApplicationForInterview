@@ -1,7 +1,5 @@
-﻿using AccountingHelper.Domain.Enums;
-using AccountingHelper.Infrastructure.Data.Entities;
+﻿using AccountingHelper.Infrastructure.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace AccountingHelper.Infrastructure.Contexts;
 
@@ -20,8 +18,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         base.OnModelCreating(modelBuilder);
         
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
-        
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-            entityType.FindProperty("CreatedAt")?.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<ITimestamped>())
+        {
+            if (entry.State == EntityState.Modified)
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+        }
+
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
     }
 }

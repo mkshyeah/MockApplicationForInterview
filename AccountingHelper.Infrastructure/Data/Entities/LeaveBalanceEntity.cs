@@ -2,7 +2,7 @@ using AccountingHelper.Domain.Enums;
 
 namespace AccountingHelper.Infrastructure.Data.Entities;
 
-public class LeaveBalanceEntity
+public class LeaveBalanceEntity : ITimestamped
 {
     public Guid Id { get; set; }
     public Guid EmployeeId { get; set; }

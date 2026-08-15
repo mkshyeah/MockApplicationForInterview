@@ -143,26 +143,29 @@ Effort: **S** (~days), **M** (~1–2 wks), **L** (~3–4 wks), **XL** (cross-cut
 - **Kubernetes** stays a reading-only stretch (already in Phase 8); **gRPC stays rejected** —
   nothing in F1–F12 resurrects it.
 
-«унифицировать возвращаемые коллекции репозиториев»
+## Закрыто на ветке refactor/narrow-repositories (до Phase 3)
 
-"избавиться от IRepository"
+- ✅ «унифицировать возвращаемые коллекции репозиториев» — все интерфейсы отдают `IReadOnlyList`.
+- ✅ «избавиться от IRepository» — узкие интерфейсы, `IRepository<T>` удалён.
+- ✅ Репозитории на tracked-обновления — `ApplyStatusAsync`, `CloseAsync`, `ApplyDecisionAsync`,
+  `DebitAsync`; ни одного `State = Modified` не осталось. `ApplyTo(model, entity)` не понадобился —
+  узкие методы мутируют entity напрямую.
+- ✅ «переопределить SaveChangesAsync и пробежаться по ChangeTracker.Entries()» — entity помечены
+  `ITimestamped`, `UpdatedAt` проставляется в одной точке; ручные простановки из четырёх
+  репозиториев удалены.
+- ✅ Заглушка `AfterSaveBehavior.Ignore` для `CreatedAt` снята — корень (detached-обновления)
+  устранён, полный прогон интеграционных тестов зелёный.
+- ✅ `CHECK (remaining_days >= 0)` — в схеме с блока 4.4 (`ck_leave_balances_remaining_days`).
 
-"переопределить SaveChangesAsync в контексте и пробежаться по ChangeTracker.Entries()"
+## Остаётся в айсбоксе
 
-"на 4.4: между GetAsync и DebitAsync теоретически может вклиниться чужое списание, и токен её не поймает — второе чтение уже увидит новое значение. Закрывается это CHECK (remaining_days >= 0) на уровне схемы: даже если код ошибётся, БД не даст остатку уйти в минус. Та же логика, что с уникальным индексом. Но это разговор для 4.4, не тащи в 4.2."
-
-" F-xx. Перевести репозитории на tracked-обновления.                                                                                                                                                         
-▎ Причина: detached ToEntity() + State = Modified перезаписывает поля, которых нет в доменной модели (CreatedAt — подтверждённый баг, -infinity в БД; xmin — не работал бы вовсе). Симптом закрыт через      
-▎ AfterSaveBehavior.Ignore, корень — нет.                                                                                                                                                                    
-▎ Объём: IRepository<T>.Update → async, ApplyTo(model, entity) в Infrastructure/Mapping, 4 репозитория, 3 хендлера, юнит-тесты.                                                                              
-▎ Образец: SalaryRepository.CloseAsync, ILeaveBalanceRepository.DebitAsync (написаны в блоке 4).                                                                                                             
-▎ Триггер: после блока 4, до Phase 3."
-
-F-xx. Хендлеры команд возвращают response-DTO вместо доменных моделей.                                                                                                                                     
-▎ Причина: домен не содержит данных, нужных для ответа (Department.Name, Position.Title), из-за чего CreateEmployeeCommandHandler делает лишний SELECT с тремя Include, хотя всё нужное уже загружено в      
-▎ локальных переменных. Контроллеры перестанут маппить.                                                                                                                                                      
-▎ Объём: 8 хендлеров + 4 контроллера + перецелить юнит-тесты.                                                                                                                                                
-▎ Триггер: вместе с «репозитории на tracked» или после — обе гранулы про то, что доменная модель используется не в своей роли.
+F-xx. Хендлеры команд возвращают response-DTO вместо доменных моделей.
+▎ Причина: стилистическая — контракт ответа принадлежит Application, контроллеры перестанут маппить.
+▎ Исходный мотивирующий баг (лишний SELECT с Include в CreateEmployeeCommandHandler) закрыт дешевле:
+▎ навигации собираются из уже загруженных локальных переменных.
+▎ Объём: 8 хендлеров + 4 контроллера + перецелить юнит-тесты. Делать только целиком — частичная
+▎ миграция даёт два стиля.
+▎ Триггер: жёсткого нет; по желанию, отдельной веткой.
 
 F-xx. Судьба Pending-заявок в момент увольнения сотрудника.
 ▎ Причина: FireEmployee не трогает заявки. ApproveLeaveRequest теперь отказывает уволенному (422), поэтому его Pending-заявки

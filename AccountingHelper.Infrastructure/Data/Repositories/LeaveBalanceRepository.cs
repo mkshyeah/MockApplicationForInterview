@@ -11,37 +11,33 @@ public class LeaveBalanceRepository : ILeaveBalanceRepository
 {
     private readonly ApplicationDbContext _dbContext;
     public LeaveBalanceRepository(ApplicationDbContext dbContext) => _dbContext = dbContext;
-    
-    public async Task<LeaveBalance?> GetAsync(Guid employeeId, LeaveType type, CancellationToken ct)
-    {
-        var entity = await _dbContext.LeaveBalances
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.LeaveType == type, ct);
-
-        return entity?.ToModel();
-    }
 
     public async Task<IReadOnlyList<LeaveBalance>> GetForEmployeeAsync(Guid employeeId, CancellationToken ct)
     {
         var entities = await _dbContext.LeaveBalances
             .AsNoTracking()
             .Where(x => x.EmployeeId == employeeId)
-            .OrderBy(x => x.LeaveType)
+            .OrderBy(x => x.LeaveType)  
             .ToListAsync(ct);
         
         return entities.Select(e => e.ToModel()).ToList();
     }
 
-    public async Task DebitAsync(Guid employeeId, LeaveType type, int days, CancellationToken ct)
+    public async Task<(DebitOutcome Outcome, int RemainingDays)> DebitAsync(Guid employeeId, LeaveType type, int days, CancellationToken ct)
     {
         var entity = await _dbContext.LeaveBalances
             .FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.LeaveType == type, ct);
 
         if (entity == null)
-            throw new InvalidOperationException($"No leave balance for employee {employeeId} and type {type}");
-        
-        entity.RemainingDays -= days;
-        entity.UpdatedAt = DateTime.UtcNow;
+            return (DebitOutcome.BalanceNotFound, 0);
+
+        // остаток до списания: он нужен для сообщения об отказе, после вычитания значение уже не то
+        var remainingDays = entity.RemainingDays;
+        if (remainingDays < days)
+            return (DebitOutcome.InsufficientDays, remainingDays);
+
+        entity.RemainingDays = remainingDays - days;
+        return (DebitOutcome.Ok, remainingDays);
     }
 
     public void Add(LeaveBalance balance)

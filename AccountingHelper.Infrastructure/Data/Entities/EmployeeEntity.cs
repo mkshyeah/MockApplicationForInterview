@@ -3,7 +3,7 @@ using AccountingHelper.Domain.Interfaces;
 
 namespace AccountingHelper.Infrastructure.Data.Entities;
 
-public class EmployeeEntity
+public class EmployeeEntity : ITimestamped
 {
     public Guid Id { get; set; }
 

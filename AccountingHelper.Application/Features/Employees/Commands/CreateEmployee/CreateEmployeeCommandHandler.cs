@@ -46,6 +46,8 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             PositionId = request.PositionId,
             Status = EmployeeStatus.Active,
             HireDate = request.HireDate,
+            Department = department,
+            Position = position,
             Salaries =
             {
                 new Salary
@@ -75,6 +77,6 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         
         _logger.LogInformation("Employee {EmployeeId} was created.", employeeId);
 
-        return (await _unitOfWork.Employees.GetByIdAsync(employeeId, ct))!;
+        return employee;
     }
 }

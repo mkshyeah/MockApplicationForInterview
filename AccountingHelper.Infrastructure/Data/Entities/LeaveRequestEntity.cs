@@ -3,7 +3,7 @@ using AccountingHelper.Domain.Models;
 
 namespace AccountingHelper.Infrastructure.Data.Entities;
 
-public class LeaveRequestEntity
+public class LeaveRequestEntity : ITimestamped
 {
     public Guid Id { get; set; }
     public Guid EmployeeId { get; set; }

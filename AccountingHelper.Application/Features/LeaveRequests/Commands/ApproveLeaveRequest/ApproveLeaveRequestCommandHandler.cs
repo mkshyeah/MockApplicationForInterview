@@ -30,25 +30,22 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
         if (status == EmployeeStatus.Fired)
             throw new BusinessRuleException( $"Employee '{leaveRequest.EmployeeId}' is fired, their leave requests cannot be approved.");
 
-        var balance = await _unitOfWork.LeaveBalances
-            .GetAsync(leaveRequest.EmployeeId, leaveRequest.LeaveType, ct);
+        var (outcome, remainingDays) = await _unitOfWork.LeaveBalances.DebitAsync(
+            leaveRequest.EmployeeId, leaveRequest.LeaveType, leaveRequest.DurationInDays, ct);
 
-        if (balance == null)
+        if (outcome == DebitOutcome.BalanceNotFound)
             throw new BusinessRuleException(
                 $"No {leaveRequest.LeaveType} leave balance found for employee '{leaveRequest.EmployeeId}'.");
 
-        if (balance.RemainingDays < leaveRequest.DurationInDays)
+        if (outcome == DebitOutcome.InsufficientDays)
             throw new BusinessRuleException(
-                $"Employee '{leaveRequest.EmployeeId}' has only {balance.RemainingDays} days of " +
+                $"Employee '{leaveRequest.EmployeeId}' has only {remainingDays} days of " +
                 $"{leaveRequest.LeaveType} leave remaining, but the request covers {leaveRequest.DurationInDays}.");
 
         leaveRequest.Status = LeaveStatus.Approved;
         leaveRequest.DecidedAt = DateTime.UtcNow;
-        
+
         await _unitOfWork.LeaveRequests.ApplyDecisionAsync(leaveRequest, ct);
-        await _unitOfWork.LeaveBalances.DebitAsync(
-            leaveRequest.EmployeeId, leaveRequest.LeaveType, leaveRequest.DurationInDays, ct);
-        
         await _unitOfWork.SaveChangesAsync(ct);
         return leaveRequest;
     }

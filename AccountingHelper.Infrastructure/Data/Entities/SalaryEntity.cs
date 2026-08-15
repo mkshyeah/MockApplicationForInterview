@@ -2,7 +2,7 @@ using AccountingHelper.Domain.Enums;
 
 namespace AccountingHelper.Infrastructure.Data.Entities;
 
-public class SalaryEntity
+public class SalaryEntity : ITimestamped
 {
     public Guid Id { get; set; }
     public decimal Amount { get; set; }

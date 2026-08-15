@@ -51,7 +51,6 @@ public class SalaryRepository : ISalaryRepository
         if (entity != null)
         {
             entity.EndDate = DateTime.UtcNow;
-            entity.UpdatedAt = DateTime.UtcNow;
         }
 
     }

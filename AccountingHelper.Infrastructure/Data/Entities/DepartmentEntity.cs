@@ -1,6 +1,6 @@
 namespace AccountingHelper.Infrastructure.Data.Entities;
 
-public class DepartmentEntity
+public class DepartmentEntity : ITimestamped
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }
