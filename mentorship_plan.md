@@ -322,9 +322,12 @@ secures. Foundations (0–2) come first so all of this is safe to build, and the
   - [x] Migrate-on-startup (`ApplyLocalMigrations`, retry)
   - [x] Unit tests (domain models + application services)
   - [x] Integration tests (WebApplicationFactory + Testcontainers + Respawn, real migrations)
-- [ ] Phase 1 — Code Quality & Consistency  ← current (see `phase_1_plan.md`)
-- [ ] Phase 2 — CQRS/MediatR + Leave Management (2a: migrate one endpoint → 2b: feature)
-- [ ] Phase 3 — Redis + Payroll Dashboard
+- [x] Phase 1 — Code Quality & Consistency  ✅ done (see `phase_1_plan.md`)
+- [x] Phase 2 — CQRS/MediatR + Leave Management  ✅ done (117 tests: 52 unit + 65 integration;
+      2a: all endpoints on MediatR, ValidationFilter removed → 2b: leave workflow with optimistic
+      concurrency; pre-phase-3 repository backlog closed: narrow interfaces, tracked updates,
+      DebitOutcome, ITimestamped stamping, CreatedAt shim removed)
+- [ ] Phase 3 — Redis + Payroll Dashboard  ← current (see `phase_3_plan.md`)
 - [ ] Phase 4 — RabbitMQ + Payroll Run & Bulk Import
 - [ ] Phase 5 — SignalR + Activity Feed & Run Progress
 - [ ] Phase 6 — GraphQL + Directory & Reporting Explorer
