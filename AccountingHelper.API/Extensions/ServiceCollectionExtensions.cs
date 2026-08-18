@@ -3,6 +3,7 @@ using AccountingHelper.API.Serialization;
 using AccountingHelper.Domain.Interfaces;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace AccountingHelper.API.Extensions;
 
@@ -13,11 +14,13 @@ public static class ServiceCollectionExtensions
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection") 
                                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        
+        var redisConnectionString =  configuration["Redis:ConnectionString"]                                                                                                                                                          
+                                     ?? throw new InvalidOperationException("Redis connection string 'ConnectionString' not found."); 
 
         services.AddControllers()
             .AddJsonOptions(options =>
                 options.JsonSerializerOptions.Converters.Add(new StrictEnumConverterFactory()))
-            // model-binding failures must come back in the same envelope as FluentValidation ones
             .ConfigureApiBehaviorOptions(options =>
                 options.InvalidModelStateResponseFactory = InvalidModelStateResponse.Create);
         
@@ -37,6 +40,14 @@ public static class ServiceCollectionExtensions
             });
 
         services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
+        
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+            options.InstanceName = configuration["Redis:InstanceName"];
+        });
+
+        services.AddHybridCache();
 
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
@@ -48,7 +59,12 @@ public static class ServiceCollectionExtensions
             .AddNpgSql(
                 connectionString: connectionString,
                 name: "postgresql",
-                tags: ["database", "postgres", "live"]);
+                tags: ["database", "postgres", "live"])
+            .AddRedis(
+                redisConnectionString: redisConnectionString,
+                name: "redis",
+                failureStatus: HealthStatus.Degraded,
+                tags: ["cache", "redis", "live"]);
         
         return services;
     }

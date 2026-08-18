@@ -19,6 +19,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     private readonly IntegrationFixture _fixture;
     protected HttpClient Client { get; private set; } = null!;
     protected JsonSerializerOptions Json { get; private set; } = null!;
+    protected IServiceProvider Services => _fixture.Factory.Services;
 
     public IntegrationTestBase(IntegrationFixture fixture)
     {

@@ -17,21 +17,42 @@ public class ApplicationHealthTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task GetHealthLive_WhenDatabaseReachable_Returns200AndHealthy()
+    public async Task GetHealthLive_WhenDatabaseReachable_Returns200AndDatabaseChecksHealthy()
     {
         // ARRANGE
- 
+
         // ACT
         var resp = await Client.GetAsync("/health/live");
- 
+
         // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
- 
+
         var report = await resp.Content.ReadFromJsonAsync<HealthReportDto>(Json);
- 
-        report!.Status.Should().Be("Healthy");
-        report.Checks.Should().NotBeEmpty();
-        report.Checks.Should().OnlyContain(c => c.Status == "Healthy");
-        report.Checks.Should().Contain(c => c.Name == "postgresql");
+
+        report!.Checks.Should().NotBeEmpty();
+        // scoped to the database checks only: the aggregate status also reflects the cache,
+        // which this test says nothing about
+        report.Checks.Should().Contain(c => c.Name == "postgresql" && c.Status == "Healthy");
+        report.Checks.Should().Contain(c => c.Name == "database_context" && c.Status == "Healthy");
+    }
+
+    [Fact]
+    public async Task GetHealthLive_WhenRedisUnavailable_Returns200AndRedisDegraded()
+    {
+        // ARRANGE
+        // the test environment points at an unreachable Redis (see CustomWebApplicationFactory)
+
+        // ACT
+        var resp = await Client.GetAsync("/health/live");
+
+        // ASSERT
+        // fail-open: an unreachable cache degrades the report but must not take the app
+        // out of rotation, so the status code stays 200
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var report = await resp.Content.ReadFromJsonAsync<HealthReportDto>(Json);
+
+        report!.Status.Should().Be("Degraded");
+        report.Checks.Should().Contain(c => c.Name == "redis" && c.Status == "Degraded");
     }
 }
