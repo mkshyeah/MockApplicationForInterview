@@ -17,5 +17,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:DefaultConnection", _connectionString);
+        // deliberately unreachable: the test environment has no Redis, which pins down the
+        // fail-open policy (cache is an optimisation, not a source of truth).
+        // Block 3 replaces this with a Testcontainers.Redis endpoint.
+        builder.UseSetting(
+            "Redis:ConnectionString",
+            "localhost:6399,abortConnect=false,connectTimeout=500,syncTimeout=500,connectRetry=1");
     }
 }
