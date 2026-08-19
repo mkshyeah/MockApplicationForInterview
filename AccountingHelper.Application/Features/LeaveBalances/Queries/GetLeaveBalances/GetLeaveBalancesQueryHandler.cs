@@ -1,11 +1,13 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
 using MediatR;
 
 namespace AccountingHelper.Application.Features.LeaveBalances.Queries.GetLeaveBalances;
 
-public class GetLeaveBalancesQueryHandler : IRequestHandler<GetLeaveBalancesQuery, IReadOnlyList<LeaveBalance>>
+public class GetLeaveBalancesQueryHandler : IRequestHandler<GetLeaveBalancesQuery, IReadOnlyList<LeaveBalanceResponse>>
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -15,7 +17,7 @@ public class GetLeaveBalancesQueryHandler : IRequestHandler<GetLeaveBalancesQuer
     }
     
     
-    public async Task<IReadOnlyList<LeaveBalance>> Handle(GetLeaveBalancesQuery request, CancellationToken ct)
+    public async Task<IReadOnlyList<LeaveBalanceResponse>> Handle(GetLeaveBalancesQuery request, CancellationToken ct)
     {
         var status = await _unitOfWork.Employees
             .GetStatusAsync(request.EmployeeId, ct);
@@ -26,6 +28,6 @@ public class GetLeaveBalancesQueryHandler : IRequestHandler<GetLeaveBalancesQuer
         var leaveBalances = await _unitOfWork.LeaveBalances
             .GetForEmployeeAsync(request.EmployeeId, ct);
         
-        return leaveBalances;
+        return leaveBalances.Select(x => x.ToResponse()).ToList();
     }
 }

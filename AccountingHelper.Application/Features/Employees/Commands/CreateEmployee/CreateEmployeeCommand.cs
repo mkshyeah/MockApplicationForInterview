@@ -1,5 +1,5 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Domain.Enums;
-using AccountingHelper.Domain.Models;
 using MediatR;
 
 namespace AccountingHelper.Application.Features.Employees.Commands.CreateEmployee;
@@ -12,4 +12,4 @@ public record CreateEmployeeCommand(
     SalaryType SalaryType,
     Guid PositionId,
     Guid DepartmentId,
-    DateTime HireDate) : IRequest<Employee>;
+    DateTime HireDate) : IRequest<EmployeeResponse>;

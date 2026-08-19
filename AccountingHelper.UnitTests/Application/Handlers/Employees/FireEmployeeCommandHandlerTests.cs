@@ -108,7 +108,7 @@ public class FireEmployeeCommandHandlerTests
         var result = await _handler.Handle(command, Ct);
 
         // ASSERT
-        result.Status.Should().Be(EmployeeStatus.Fired);
+        result.Status.Should().Be(nameof(EmployeeStatus.Fired));
         result.TerminationDate.Should().NotBeNull();
         result.TerminationDate!.Value.Should()
             .BeOnOrAfter(before).And.BeOnOrBefore(DateTime.UtcNow);
@@ -141,7 +141,7 @@ public class FireEmployeeCommandHandlerTests
         var result = await _handler.Handle(command, Ct);
 
         // ASSERT
-        result.Status.Should().Be(EmployeeStatus.Fired);
+        result.Status.Should().Be(nameof(EmployeeStatus.Fired));
 
         _salaryRepositoryMock.Verify(
             r => r.CloseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);

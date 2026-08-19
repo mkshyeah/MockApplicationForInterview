@@ -108,7 +108,7 @@ public class SendEmployeeOnVacationCommandHandlerTests
         var result = await _handler.Handle(command, Ct);
 
         // ASSERT
-        result.Status.Should().Be(EmployeeStatus.OnVacation);
+        result.Status.Should().Be(nameof(EmployeeStatus.OnVacation));
 
         _employeeRepositoryMock.Verify(r => r.GetByIdAsync(employeeId, Ct), Times.Once);
         _employeeRepositoryMock.Verify(r => r.ApplyStatusAsync(activeEmployee, Ct), Times.Once);

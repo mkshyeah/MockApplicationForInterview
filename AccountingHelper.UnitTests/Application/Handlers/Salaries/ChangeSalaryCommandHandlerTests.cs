@@ -122,7 +122,6 @@ public class ChangeSalaryCommandHandlerTests
         result.Id.Should().NotBeEmpty().And.NotBe(oldSalary.Id);
         result.Amount.Should().Be(command.Amount);
         result.Type.Should().Be(command.SalaryType);
-        result.EmployeeId.Should().Be(employeeId);
         result.EndDate.Should().BeNull();
 
         _salaryRepositoryMock.Verify(r => r.CloseAsync(oldSalary.Id, Ct), Times.Once);
@@ -157,7 +156,6 @@ public class ChangeSalaryCommandHandlerTests
         result.Id.Should().NotBeEmpty();
         result.Amount.Should().Be(command.Amount);
         result.Type.Should().Be(command.SalaryType);
-        result.EmployeeId.Should().Be(employeeId);
         result.EndDate.Should().BeNull();
 
         _salaryRepositoryMock.Verify(

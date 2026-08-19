@@ -1,4 +1,6 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -7,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AccountingHelper.Application.Features.Salaries.Commands.ChangeSalary;
 
-public class ChangeSalaryCommandHandler : IRequestHandler<ChangeSalaryCommand, Salary>
+public class ChangeSalaryCommandHandler : IRequestHandler<ChangeSalaryCommand, SalaryResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ChangeSalaryCommandHandler> _logger;
@@ -19,7 +21,7 @@ public class ChangeSalaryCommandHandler : IRequestHandler<ChangeSalaryCommand, S
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
-    public async Task<Salary> Handle(ChangeSalaryCommand request, CancellationToken ct)
+    public async Task<SalaryResponse> Handle(ChangeSalaryCommand request, CancellationToken ct)
     {
         var employee = await _unitOfWork.Employees.GetByIdAsync(request.EmployeeId, ct);
         
@@ -57,6 +59,6 @@ public class ChangeSalaryCommandHandler : IRequestHandler<ChangeSalaryCommand, S
             salary.Amount,
             salary.Type);
         
-        return salary;
+        return salary.ToResponse();
     }
 }

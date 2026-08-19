@@ -1,4 +1,6 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -6,7 +8,7 @@ using MediatR;
 
 namespace AccountingHelper.Application.Features.Employees.Commands.SendEmployeeOnVacation;
 
-public class SendEmployeeOnVacationCommandHandler : IRequestHandler<SendEmployeeOnVacationCommand, Employee>
+public class SendEmployeeOnVacationCommandHandler : IRequestHandler<SendEmployeeOnVacationCommand, EmployeeResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -14,7 +16,7 @@ public class SendEmployeeOnVacationCommandHandler : IRequestHandler<SendEmployee
     {
         _unitOfWork = unitOfWork;
     }
-    public async Task<Employee> Handle(SendEmployeeOnVacationCommand request, CancellationToken ct)
+    public async Task<EmployeeResponse> Handle(SendEmployeeOnVacationCommand request, CancellationToken ct)
     {
         var employee = await _unitOfWork.Employees.GetByIdAsync(request.EmployeeId,ct);
         
@@ -33,6 +35,6 @@ public class SendEmployeeOnVacationCommandHandler : IRequestHandler<SendEmployee
         await _unitOfWork.Employees.ApplyStatusAsync(employee,ct);
         await _unitOfWork.SaveChangesAsync(ct);
         
-        return employee;
+        return employee.ToResponse();
     }
 }

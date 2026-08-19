@@ -1,4 +1,6 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -6,7 +8,7 @@ using MediatR;
 
 namespace AccountingHelper.Application.Features.LeaveRequests.Commands.ApproveLeaveRequest;
 
-public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveRequestCommand, LeaveRequest>
+public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveRequestCommand, LeaveRequestResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
     public ApproveLeaveRequestCommandHandler(IUnitOfWork unitOfWork)
@@ -14,7 +16,7 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
         _unitOfWork = unitOfWork;
     }
     
-    public async Task<LeaveRequest> Handle(ApproveLeaveRequestCommand request, CancellationToken ct)
+    public async Task<LeaveRequestResponse> Handle(ApproveLeaveRequestCommand request, CancellationToken ct)
     {
         var leaveRequest = await _unitOfWork.LeaveRequests.GetByIdAsync(request.LeaveRequestId, ct);
         if (leaveRequest == null)
@@ -47,6 +49,6 @@ public class ApproveLeaveRequestCommandHandler : IRequestHandler<ApproveLeaveReq
 
         await _unitOfWork.LeaveRequests.ApplyDecisionAsync(leaveRequest, ct);
         await _unitOfWork.SaveChangesAsync(ct);
-        return leaveRequest;
+        return leaveRequest.ToResponse();
     }
 }

@@ -1,4 +1,6 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -7,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AccountingHelper.Application.Features.Employees.Commands.CreateEmployee;
 
-public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeCommand, Employee>
+public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeCommand, EmployeeResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CreateEmployeeCommandHandler> _logger;
@@ -20,7 +22,7 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         _logger = logger;
     }
     
-    public async Task<Employee> Handle(CreateEmployeeCommand request, CancellationToken ct)
+    public async Task<EmployeeResponse> Handle(CreateEmployeeCommand request, CancellationToken ct)
     {
         var exists = await _unitOfWork.Employees.ExistsByEmailAsync(request.Email,ct);
         if (exists)
@@ -77,6 +79,6 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         
         _logger.LogInformation("Employee {EmployeeId} was created.", employeeId);
 
-        return employee;
+        return employee.ToResponse();
     }
 }

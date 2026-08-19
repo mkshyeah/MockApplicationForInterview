@@ -1,3 +1,4 @@
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Interfaces;
 using MediatR;
 
@@ -22,6 +23,8 @@ public class GetEmployeesQueryHandler : IRequestHandler<GetEmployeesQuery, GetEm
             request.EmployeeStatus,
             ct);
         
-        return new GetEmployeesResult(Items:employees, TotalCount:total);
+        return new GetEmployeesResult(
+            Items: employees.Select(e => e.ToResponse()).ToList(),
+            TotalCount: total);
     }
 }

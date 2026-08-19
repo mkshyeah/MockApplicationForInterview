@@ -1,10 +1,11 @@
+using AccountingHelper.Application.DTOs.Responses;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Interfaces;
-using AccountingHelper.Domain.Models;
 using MediatR;
 
 namespace AccountingHelper.Application.Features.Departments.Queries.GetDepartments;
 
-public class GetDepartmentsQueryHandler : IRequestHandler<GetDepartmentsQuery, IReadOnlyList<Department>>
+public class GetDepartmentsQueryHandler : IRequestHandler<GetDepartmentsQuery, IReadOnlyList<DepartmentResponse>>
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -13,8 +14,10 @@ public class GetDepartmentsQueryHandler : IRequestHandler<GetDepartmentsQuery, I
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IReadOnlyList<Department>> Handle(GetDepartmentsQuery request, CancellationToken ct)
+    public async Task<IReadOnlyList<DepartmentResponse>> Handle(GetDepartmentsQuery request, CancellationToken ct)
     {
-        return await _unitOfWork.Departments.GetAllAsync(ct);
+        var items = await _unitOfWork.Departments.GetAllAsync(ct);
+
+        return items.Select(x => x.ToResponse()).ToList();
     }
 }

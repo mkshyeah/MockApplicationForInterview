@@ -35,7 +35,7 @@ public class SalaryController : ControllerBase
     {
         var salary = await _sender.Send(request.ToCommand(employeeId), ct);
         
-        return Ok(salary.ToResponse());
+        return Ok(salary);
     }
 
     [HttpGet]
@@ -45,8 +45,7 @@ public class SalaryController : ControllerBase
     {
         var salaries = await _sender.Send(new GetSalaryHistoryQuery(employeeId), ct);
 
-        var response = salaries.Select(s => s.ToResponse()).ToList();
-        return Ok(response);
+        return Ok(salaries);
     }
     
 }

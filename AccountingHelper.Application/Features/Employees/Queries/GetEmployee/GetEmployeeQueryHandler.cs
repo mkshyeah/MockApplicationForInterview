@@ -1,11 +1,12 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Interfaces;
-using AccountingHelper.Domain.Models;
 using MediatR;
 
 namespace AccountingHelper.Application.Features.Employees.Queries.GetEmployee;
 
-public class GetEmployeeQueryHandler : IRequestHandler<GetEmployeeQuery, Employee>
+public class GetEmployeeQueryHandler : IRequestHandler<GetEmployeeQuery, EmployeeResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
     public GetEmployeeQueryHandler(IUnitOfWork unitOfWork)
@@ -13,13 +14,13 @@ public class GetEmployeeQueryHandler : IRequestHandler<GetEmployeeQuery, Employe
         _unitOfWork = unitOfWork;
     }
     
-    public async Task<Employee> Handle(GetEmployeeQuery request, CancellationToken ct)
+    public async Task<EmployeeResponse> Handle(GetEmployeeQuery request, CancellationToken ct)
     {
         var employee = await _unitOfWork.Employees.GetByIdAsync(request.EmployeeId, ct);
         
         if (employee == null)
             throw new NotFoundException("Employee", request.EmployeeId);
         
-        return employee;
+        return employee.ToResponse();
     }
 }
