@@ -25,8 +25,9 @@ public class GetTotalSalariesQueryHandlerTests
         _handler = new GetTotalSalariesQueryHandler(_unitOfWorkMock.Object);
     }
 
-    // The handler holds no logic — it delegates straight to the repository. That only
-    // *active* salaries are summed is a repository/SQL concern, proven in ReportingTests.
+    // The handler holds no logic — it delegates straight to the repository. Which salaries
+    // count (active, employee not fired) and the conversion to a monthly figure both live
+    // below this seam, in the repository, and are proven in ReportingTests.
     [Fact]
     public async Task Handle_ShouldReturnRepositoryTotal_AndForwardToken()
     {
