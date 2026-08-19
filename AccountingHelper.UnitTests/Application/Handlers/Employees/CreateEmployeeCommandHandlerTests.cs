@@ -172,7 +172,11 @@ public class CreateEmployeeCommandHandlerTests
         salary.Amount.Should().Be(command.SalaryAmount);
         salary.Type.Should().Be(command.SalaryType);
 
-        result.Should().BeSameAs(added);
+        // The handler returns a DTO now, so identity no longer holds: what matters is that the
+        // response describes the entity that was persisted.
+        result.Id.Should().Be(added.Id);
+        result.Email.Should().Be(added.Email);
+        result.Status.Should().Be(nameof(EmployeeStatus.Active));
 
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }

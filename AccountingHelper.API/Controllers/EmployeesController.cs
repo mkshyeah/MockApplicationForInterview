@@ -37,7 +37,7 @@ public class EmployeesController : ControllerBase
         var (employees, total) = await _sender.Send(query, ct);
         
         var response = PagedResponse<EmployeeResponse>.Create(
-            employees.Select(e => e.ToResponse()).ToList(),
+            employees,
             total,
             query.Limit,
             query.Offset);
@@ -53,9 +53,7 @@ public class EmployeesController : ControllerBase
     {
         var employee = await _sender.Send(new GetEmployeeQuery(id), ct);
 
-        var response =  employee.ToResponse();
-        
-        return Ok(response);
+        return Ok(employee);
     }
 
     [HttpPost]
@@ -69,7 +67,7 @@ public class EmployeesController : ControllerBase
     {
         var employee = await _sender.Send(request.ToCommand(), ct);
 
-        return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee.ToResponse());
+        return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee);
     }
 
     [HttpPatch("{id:guid}/fire")]
@@ -81,7 +79,7 @@ public class EmployeesController : ControllerBase
         CancellationToken ct=default)
     {
         var employee = await _sender.Send(new FireEmployeeCommand(id), ct);
-        return Ok(employee.ToResponse());
+        return Ok(employee);
     }
 
     [HttpPatch("{id:guid}/on-vacation")]
@@ -93,7 +91,7 @@ public class EmployeesController : ControllerBase
         CancellationToken ct = default)
     {
         var employee = await _sender.Send(new SendEmployeeOnVacationCommand(id), ct);
-        return Ok(employee.ToResponse());
+        return Ok(employee);
     }
     
     [HttpPatch("{id:guid}/off-vacation")]
@@ -105,6 +103,6 @@ public class EmployeesController : ControllerBase
         CancellationToken ct = default)
     {
         var employee = await _sender.Send(new SendEmployeeOffVacationCommand(id), ct);
-        return Ok(employee.ToResponse());
+        return Ok(employee);
     }
 }

@@ -1,6 +1,5 @@
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.Departments.Queries.GetDepartments;
-using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +25,6 @@ public class DepartmentsController : ControllerBase
     {
         var departments = await _sender.Send(new GetDepartmentsQuery(), ct);
 
-        return Ok(departments.Select(d => d.ToResponse()).ToList());
+        return Ok(departments);
     }
 }

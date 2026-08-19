@@ -1,4 +1,6 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -7,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AccountingHelper.Application.Features.Employees.Commands.FireEmployee;
 
-public class FireEmployeeCommandHandler : IRequestHandler<FireEmployeeCommand, Employee>
+public class FireEmployeeCommandHandler : IRequestHandler<FireEmployeeCommand, EmployeeResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<FireEmployeeCommandHandler> _logger;
@@ -20,7 +22,7 @@ public class FireEmployeeCommandHandler : IRequestHandler<FireEmployeeCommand, E
         _logger = logger;
     }
     
-    public async Task<Employee> Handle(FireEmployeeCommand request, CancellationToken ct)
+    public async Task<EmployeeResponse> Handle(FireEmployeeCommand request, CancellationToken ct)
     {
         var employee= await _unitOfWork.Employees
             .GetByIdAsync(request.Id, ct);
@@ -43,6 +45,6 @@ public class FireEmployeeCommandHandler : IRequestHandler<FireEmployeeCommand, E
         
         _logger.LogInformation("Employee {EmployeeId} was successfully fired. Associated active salary was closed.", request.Id);
 
-        return employee;
+        return employee.ToResponse();
     }
 }

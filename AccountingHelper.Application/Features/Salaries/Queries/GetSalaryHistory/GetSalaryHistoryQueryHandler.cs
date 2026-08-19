@@ -1,11 +1,13 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
 using MediatR;
 
 namespace AccountingHelper.Application.Features.Salaries.Queries.GetSalaryHistory;
 
-public class GetSalaryHistoryQueryHandler : IRequestHandler<GetSalaryHistoryQuery, IReadOnlyList<Salary>>
+public class GetSalaryHistoryQueryHandler : IRequestHandler<GetSalaryHistoryQuery, IReadOnlyList<SalaryResponse>>
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -14,7 +16,7 @@ public class GetSalaryHistoryQueryHandler : IRequestHandler<GetSalaryHistoryQuer
         _unitOfWork = unitOfWork;
     }
     
-    public async Task<IReadOnlyList<Salary>> Handle(GetSalaryHistoryQuery request, CancellationToken ct)
+    public async Task<IReadOnlyList<SalaryResponse>> Handle(GetSalaryHistoryQuery request, CancellationToken ct)
     {
         var status = await _unitOfWork.Employees.GetStatusAsync(request.EmployeeId, ct);
         
@@ -24,6 +26,6 @@ public class GetSalaryHistoryQueryHandler : IRequestHandler<GetSalaryHistoryQuer
         var salaries = await _unitOfWork.Salaries
             .GetHistoryAsync(request.EmployeeId, ct);
         
-        return salaries;
+        return salaries.Select(x => x.ToResponse()).ToList();
     }
 }

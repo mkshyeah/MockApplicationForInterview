@@ -1,6 +1,5 @@
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.LeaveBalances.Queries.GetLeaveBalances;
-using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +27,6 @@ public class LeaveBalanceController : ControllerBase
     {
         var balances = await _sender.Send(new GetLeaveBalancesQuery(employeeId), ct);
         
-        return Ok(balances.Select(b => b.ToResponse()).ToList());
+        return Ok(balances);
     }
 }

@@ -119,7 +119,10 @@ public class SubmitLeaveRequestCommandHandlerTests
         added.DecidedAt.Should().BeNull();
         added.DecidedBy.Should().BeNull();
         
-        result.Should().BeSameAs(added);
+        // The handler returns a DTO now, so identity no longer holds: what matters is that the
+        // response describes the request that was persisted.
+        result.Id.Should().Be(added.Id);
+        result.Status.Should().Be(LeaveStatus.Pending);
         
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(Ct), Times.Once);
     }

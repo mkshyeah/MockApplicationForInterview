@@ -1,6 +1,5 @@
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.Positions.Queries.GetPositions;
-using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +25,6 @@ public class PositionsController : ControllerBase
     {
         var positions = await _sender.Send(new GetPositionsQuery(), ct);
 
-        return Ok(positions.Select(p => p.ToResponse()).ToList());
+        return Ok(positions);
     }
 }

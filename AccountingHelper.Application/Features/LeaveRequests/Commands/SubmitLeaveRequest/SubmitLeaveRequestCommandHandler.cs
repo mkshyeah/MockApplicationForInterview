@@ -1,4 +1,6 @@
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Mapping;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
@@ -7,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AccountingHelper.Application.Features.LeaveRequests.Commands.SubmitLeaveRequest;
 
-public class SubmitLeaveRequestCommandHandler : IRequestHandler<SubmitLeaveRequestCommand, LeaveRequest>
+public class SubmitLeaveRequestCommandHandler : IRequestHandler<SubmitLeaveRequestCommand, LeaveRequestResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<SubmitLeaveRequestCommandHandler> _logger;
@@ -19,7 +21,7 @@ public class SubmitLeaveRequestCommandHandler : IRequestHandler<SubmitLeaveReque
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
-    public async Task<LeaveRequest> Handle(SubmitLeaveRequestCommand request, CancellationToken ct)
+    public async Task<LeaveRequestResponse> Handle(SubmitLeaveRequestCommand request, CancellationToken ct)
     {
         var status = await _unitOfWork.Employees.GetStatusAsync(request.EmployeeId, ct);
 
@@ -51,6 +53,6 @@ public class SubmitLeaveRequestCommandHandler : IRequestHandler<SubmitLeaveReque
             leaveRequest.DurationInDays);
                     
         
-        return leaveRequest;
+        return leaveRequest.ToResponse();
     }
 }

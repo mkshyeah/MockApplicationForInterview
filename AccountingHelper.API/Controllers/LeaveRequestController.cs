@@ -33,7 +33,7 @@ public class LeaveRequestController : ControllerBase
     {
         var leaveRequests = await _sender.Send(new GetLeaveRequestsQuery(employeeId), ct);
         
-        return Ok(leaveRequests.Select(leaveRequest => leaveRequest.ToResponse()).ToList());
+        return Ok(leaveRequests);
     }
 
     [HttpGet("leave-requests/{id:guid}")]
@@ -44,7 +44,7 @@ public class LeaveRequestController : ControllerBase
         CancellationToken ct = default)
     {
         var leaveRequest = await _sender.Send(new GetLeaveRequestQuery(id), ct);
-        return Ok(leaveRequest.ToResponse());
+        return Ok(leaveRequest);
     }
     
     [HttpPost("employees/{employeeId:guid}/leave-requests")]
@@ -60,7 +60,7 @@ public class LeaveRequestController : ControllerBase
     {
         var leaveRequest = await _sender.Send(request.ToCommand(employeeId), ct);
         
-        return CreatedAtAction(nameof(GetLeaveRequest), new { id = leaveRequest.Id }, leaveRequest.ToResponse());
+        return CreatedAtAction(nameof(GetLeaveRequest), new { id = leaveRequest.Id }, leaveRequest);
     }
 
     [HttpPatch("leave-requests/{id:guid}/approve")]
@@ -73,7 +73,7 @@ public class LeaveRequestController : ControllerBase
         CancellationToken ct = default)
     {
         var leaveRequest = await _sender.Send(new ApproveLeaveRequestCommand(id), ct);
-        return Ok(leaveRequest.ToResponse());
+        return Ok(leaveRequest);
     }
     
     [HttpPatch("leave-requests/{id:guid}/reject")]
@@ -85,6 +85,6 @@ public class LeaveRequestController : ControllerBase
         CancellationToken ct = default)
     {
         var leaveRequest = await _sender.Send(new RejectLeaveRequestCommand(id), ct);
-        return Ok(leaveRequest.ToResponse());
+        return Ok(leaveRequest);
     }
 }
