@@ -108,4 +108,14 @@ public class EmployeeRepository : IEmployeeRepository
 
       return (items, total);
    }
+   
+   public async Task<IReadOnlyList<DepartmentHeadcount>> GetHeadcountByDepartmentAsync(CancellationToken ct)
+   {
+      return await _dbContext.Employees
+         .AsNoTracking()
+         .Where(e => EmployeeStatuses.Employed.Contains(e.Status))
+         .GroupBy(e => new { e.DepartmentId, e.Department!.Name })
+         .Select(g => new DepartmentHeadcount(g.Key.DepartmentId, g.Key.Name, g.Count()))
+         .ToListAsync(ct);
+   }
 }

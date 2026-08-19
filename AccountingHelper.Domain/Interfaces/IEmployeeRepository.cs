@@ -20,4 +20,5 @@ public interface IEmployeeRepository
     Task<EmployeeStatus?> GetStatusAsync(Guid employeeId, CancellationToken ct);
     void Add(Employee model);
     Task ApplyStatusAsync(Employee model, CancellationToken ct);
+    Task<IReadOnlyList<DepartmentHeadcount>> GetHeadcountByDepartmentAsync(CancellationToken ct);
 }

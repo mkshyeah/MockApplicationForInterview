@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using AccountingHelper.Domain.Enums;
 using AccountingHelper.IntegrationTests.Setup;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace AccountingHelper.IntegrationTests.Tests;
@@ -141,11 +143,85 @@ public class ReportingTests : IntegrationTestBase
     {
         // ARRANGE
         var missingEmployeeId = Guid.NewGuid();
- 
+
         // ACT
         var resp = await Client.GetAsync($"v1/reporting/employees/{missingEmployeeId}/status");
- 
+
         // ASSERT
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetActiveSalarySum_ConvertsNonMonthlySalariesToMonthly()
+    {
+        // ARRANGE
+        var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
+
+        await CreateEmployeeAsync(seedDepartmentId, seedPositionId, salary: 5000m);
+        // 60/hour -> 60 * 2080 / 12 = 10 000 per month (exact, no rounding involved)
+        await CreateEmployeeAsync(seedDepartmentId, seedPositionId, salary: 60m, salaryType: "Hourly");
+
+        // ACT
+        var resp = await Client.GetAsync("v1/reporting/salaries");
+
+        // ASSERT
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var amount = await resp.Content.ReadFromJsonAsync<decimal>(Json);
+
+        // summing raw amounts would give 5060 — a number that means nothing,
+        // since it adds an hourly rate to a monthly one
+        amount.Should().Be(15_400m);
+    }
+
+    [Fact]
+    public async Task GetActiveSalarySum_ExcludesFiredEmployeeWhoseSalaryWasNeverClosed()
+    {
+        // ARRANGE
+        var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
+
+        await CreateEmployeeAsync(seedDepartmentId, seedPositionId, salary: 5000m);
+        var fired = await CreateEmployeeAsync(seedDepartmentId, seedPositionId, salary: 3000m);
+
+        // bypass the fire endpoint on purpose: it closes the salary, and this test is about
+        // the data state where that invariant was broken (bulk import, migration, manual fix).
+        // EndDate == null alone would keep the employee in payroll forever.
+        await WithDbContextAsync(async db =>
+        {
+            var entity = await db.Employees.SingleAsync(e => e.Id == fired.Id);
+            entity.Status = EmployeeStatus.Fired;
+            await db.SaveChangesAsync();
+        });
+
+        // ACT
+        var resp = await Client.GetAsync("v1/reporting/salaries");
+
+        // ASSERT
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var amount = await resp.Content.ReadFromJsonAsync<decimal>(Json);
+
+        amount.Should().Be(5000m);
+    }
+
+    [Fact]
+    public async Task GetActiveSalarySum_IncludesEmployeeOnVacation()
+    {
+        // ARRANGE
+        var (seedDepartmentId, seedPositionId) = await SeedReferenceDataAsync();
+
+        var employee = await CreateEmployeeAsync(seedDepartmentId, seedPositionId, salary: 5000m);
+
+        var vacationResp = await Client.PatchAsync($"v1/employees/{employee.Id}/on-vacation", content: null);
+        vacationResp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // ACT
+        var resp = await Client.GetAsync("v1/reporting/salaries");
+
+        // ASSERT
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var amount = await resp.Content.ReadFromJsonAsync<decimal>(Json);
+
+        // people on vacation are still paid: filtering on Status == Active instead of
+        // Status != Fired would silently drop them from payroll
+        amount.Should().Be(5000m);
     }
 }

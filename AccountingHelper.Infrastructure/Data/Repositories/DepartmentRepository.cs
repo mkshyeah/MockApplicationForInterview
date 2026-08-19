@@ -20,4 +20,17 @@ public class DepartmentRepository : IDepartmentRepository
         
         return entity?.ToModel();
     }
+
+    public async Task<IReadOnlyList<Department>> GetAllAsync(CancellationToken ct)
+    {
+        // ThenBy(Id) — тай-брейк на одинаковых именах: без него порядок двух "Sales"
+        // определяет план запроса, и тесты начнут мигать.
+        var entities = await _dbContext.Departments
+            .AsNoTracking()
+            .OrderBy(d => d.Name)
+            .ThenBy(d => d.Id)
+            .ToListAsync(ct);
+
+        return entities.Select(e => e.ToModel()).ToList();
+    }
 }

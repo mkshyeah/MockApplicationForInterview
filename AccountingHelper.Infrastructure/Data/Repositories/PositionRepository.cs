@@ -20,4 +20,17 @@ public class PositionRepository : IPositionRepository
 
         return entity?.ToModel();
     }
+
+    public async Task<IReadOnlyList<Position>> GetAllAsync(CancellationToken ct)
+    {
+        // Порядок по названию должности, а не по грейду: справочник отдаётся as-is,
+        // а сортировку по грейду фронт при желании сделает сам.
+        var entities = await _dbContext.Positions
+            .AsNoTracking()
+            .OrderBy(p => p.Title)
+            .ThenBy(p => p.Id)
+            .ToListAsync(ct);
+
+        return entities.Select(e => e.ToModel()).ToList();
+    }
 }

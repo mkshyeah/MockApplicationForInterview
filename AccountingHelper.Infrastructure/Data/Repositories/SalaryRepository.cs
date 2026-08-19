@@ -1,6 +1,7 @@
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
+using AccountingHelper.Domain.Services;
 using AccountingHelper.Infrastructure.Contexts;
 using AccountingHelper.Infrastructure.Mapping;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,7 @@ public class SalaryRepository : ISalaryRepository
     public SalaryRepository(ApplicationDbContext dbContext) => _dbContext = dbContext;
     
     public void Add(Salary model) => _dbContext.Salaries.Add(model.ToEntity());
-    
+
     public async Task<Salary?> GetCurrentSalaryAsync(Guid employeeId, CancellationToken ct)
     {
         var entity = await _dbContext.Salaries
@@ -27,9 +28,8 @@ public class SalaryRepository : ISalaryRepository
 
     public async Task<decimal> GetTotalCurrentSalaryAsync(CancellationToken ct)
     {
-        return await _dbContext.Salaries
-            .Where(s => s.EndDate == null)
-            .SumAsync(s => s.Amount, ct);
+        var snapshots = await GetActiveSnapshotsAsync(ct);
+        return snapshots.Sum(s => SalaryCalculator.Convert(s.Amount, s.Type, SalaryType.Monthly));
     }
 
     public async Task<IReadOnlyList<Salary>> GetHistoryAsync(Guid employeeId, CancellationToken ct)
@@ -52,6 +52,18 @@ public class SalaryRepository : ISalaryRepository
         {
             entity.EndDate = DateTime.UtcNow;
         }
-
+    }
+    
+    public async Task<IReadOnlyList<ActiveSalarySnapshot>> GetActiveSnapshotsAsync(CancellationToken ct)
+    {
+        return await _dbContext.Salaries
+            .AsNoTracking()
+            .Where(s => s.EndDate==null
+                        && EmployeeStatuses.Employed.Contains(s.Employee!.Status))
+            .Select(s => new ActiveSalarySnapshot(
+                s.Amount,
+                s.Type,
+                s.Employee!.Position!.Grade))
+            .ToListAsync(ct);
     }
 }

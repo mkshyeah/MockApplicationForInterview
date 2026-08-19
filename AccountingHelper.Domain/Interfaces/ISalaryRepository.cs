@@ -11,4 +11,7 @@ public interface ISalaryRepository
     
     Task CloseAsync (Guid salaryId, CancellationToken ct);
     void Add(Salary model);
+    
+    Task<IReadOnlyList<ActiveSalarySnapshot>> GetActiveSnapshotsAsync(CancellationToken ct);
+
 }
