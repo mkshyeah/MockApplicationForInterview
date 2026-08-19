@@ -81,6 +81,44 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         });
     }
     
+    // SeedReferenceDataAsync даёт один департамент и одну позицию — этого хватает тестам про
+    // суммы, но не про разбивку. Ниже точечные хелперы: они нужны там, где важны имена
+    // департаментов и разные грейды.
+    protected Task<Guid> SeedDepartmentAsync(string name)
+    {
+        return WithDbContextAsync(async db =>
+        {
+            var department = new DepartmentEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = name
+            };
+
+            db.Departments.Add(department);
+            await db.SaveChangesAsync();
+
+            return department.Id;
+        });
+    }
+
+    protected Task<Guid> SeedPositionAsync(string title, EmployeeGrade grade)
+    {
+        return WithDbContextAsync(async db =>
+        {
+            var position = new PositionEntity
+            {
+                Id = Guid.NewGuid(),
+                Title = title,
+                Grade = grade
+            };
+
+            db.Positions.Add(position);
+            await db.SaveChangesAsync();
+
+            return position.Id;
+        });
+    }
+
     protected async Task<EmployeeResponse> CreateEmployeeAsync(
         Guid departmentId,
         Guid positionId,

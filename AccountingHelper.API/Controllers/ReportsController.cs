@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.Reports.Queries.GetCalculateTaxes;
+using AccountingHelper.Application.Features.Reports.Queries.GetDashboard;
 using AccountingHelper.Application.Features.Reports.Queries.GetEmployeeCount;
 using AccountingHelper.Application.Features.Reports.Queries.GetEmployeeStatus;
 using AccountingHelper.Application.Features.Reports.Queries.GetSalaryByType;
@@ -75,5 +77,14 @@ public class ReportsController : ControllerBase
         var taxes = await _sender.Send(new GetCalculateTaxesQuery(id), ct);
         
         return Ok(taxes);
+    }
+    
+    [HttpGet("dashboard")]
+    [ProducesResponseType(typeof(DashboardResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DashboardResponse>> GetDashboard(CancellationToken ct = default)
+    {
+        var dashboard = await _sender.Send(new GetDashboardQuery(), ct);
+
+        return Ok(dashboard);
     }
 }
