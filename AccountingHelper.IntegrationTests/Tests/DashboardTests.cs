@@ -112,37 +112,6 @@ public class DashboardTests : IntegrationTestBase
         dashboard.AverageSalaryByGrade.Should().ContainSingle()
             .Which.AverageMonthlySalary.Should().Be(1_500.00m);
     }
-
-    // Смена зарплаты закрывает старую и открывает новую, ФОТ обязан показать новую.
-    // Этот же сценарий станет базой для теста устаревания кэша в блоке 3: там второй
-    // запрос после смены зарплаты должен, наоборот, вернуть старые 1000 из кэша.
-    [Fact]
-    public async Task GetDashboard_ReflectsSalaryChangeInPayroll()
-    {
-        // ARRANGE
-        var itId = await SeedDepartmentAsync("IT");
-        var juniorId = await SeedPositionAsync("Junior Developer", EmployeeGrade.Junior);
-
-        var employee = await CreateEmployeeAsync(itId, juniorId, salary: 1000m);
-
-        var before = await GetDashboardAsync();
-        before.TotalMonthlyPayroll.Should().Be(1_000.00m);
-
-        var changeResp = await Client.PutAsJsonAsync($"v1/employees/{employee.Id}/salaries", new
-        {
-            amount = 10_000m, salaryType = "Monthly"
-        });
-        changeResp.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // ACT
-        var dashboard = await GetDashboardAsync();
-
-        // ASSERT
-        // 10 000, а не 11 000: старая зарплата закрыта и в активный срез не попадает
-        dashboard.TotalMonthlyPayroll.Should().Be(10_000.00m);
-        dashboard.TotalMonthlyTax.Should().Be(1_000.00m);
-
-        dashboard.AverageSalaryByGrade.Should().ContainSingle()
-            .Which.AverageMonthlySalary.Should().Be(10_000.00m);
-    }
+    
+    
 }

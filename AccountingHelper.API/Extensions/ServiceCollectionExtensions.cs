@@ -1,5 +1,6 @@
 using AccountingHelper.API.Middleware;
 using AccountingHelper.API.Serialization;
+using AccountingHelper.Application.Caching;
 using AccountingHelper.Domain.Interfaces;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
@@ -48,6 +49,12 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddHybridCache();
+        
+        services.AddOptions<CacheSettings>()
+            .Bind(configuration.GetSection(CacheSettings.SectionName))
+            .Validate(s => s.Dashboard > TimeSpan.Zero, "Cache:Dashboard must be positive")
+            .Validate(s => s.Lookups > TimeSpan.Zero, "Cache:Lookups must be positive")
+            .ValidateOnStart();
 
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();

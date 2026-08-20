@@ -1,21 +1,45 @@
+using AccountingHelper.Application.Caching;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Services;
 using MediatR;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Options;
 
 namespace AccountingHelper.Application.Features.Reports.Queries.GetDashboard;
 
 public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, DashboardResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly HybridCache _cache;
+    private readonly HybridCacheEntryOptions _cacheOptions;
 
-    public GetDashboardQueryHandler(IUnitOfWork unitOfWork)
+    public GetDashboardQueryHandler(
+        IUnitOfWork unitOfWork,
+        HybridCache cache,
+        IOptions<CacheSettings> cacheSettings)
     {
         _unitOfWork = unitOfWork;
+        _cache = cache;
+        _cacheOptions = new HybridCacheEntryOptions
+        {
+            Expiration = cacheSettings.Value.Dashboard,
+            LocalCacheExpiration = cacheSettings.Value.Dashboard
+        };
     }
     
     public async Task<DashboardResponse> Handle(GetDashboardQuery request, CancellationToken ct)
+    {
+       return await _cache.GetOrCreateAsync(
+           CacheKeys.ReportingDashboard,
+           this,
+           static (handler,token) => handler.BuildAsync(token),
+           _cacheOptions,
+           cancellationToken:ct);
+    }
+    
+    private async ValueTask<DashboardResponse> BuildAsync(CancellationToken ct)
     {
         var snapshots = await _unitOfWork.Salaries.GetActiveSnapshotsAsync(ct);
         var headcounts = await _unitOfWork.Employees.GetHeadcountByDepartmentAsync(ct);

@@ -95,11 +95,21 @@ Dependency direction: API → Application → Domain ← Infrastructure.
 - L1 lives in the process and the `WebApplicationFactory` is one per run, so a cached value survives both Respawn and a Redis flush and leaks into the next test. `IntegrationFixture.ResetAsync` therefore walks `CacheKeys.All` and calls `HybridCache.RemoveAsync`, which drops the entry from both levels. This works only while keys are static — a parameterized key would need tag-based removal instead.
 - Defaults are 5 min L2 / 1 min L1 expiration and a 1 MiB `MaximumPayloadBytes`. Per-entry TTLs belong in `HybridCacheEntryOptions` at the call site, not in global options.
 
+**What is cached, and the staleness that buys.** Three query handlers wrap their former body in `GetOrCreateAsync`: the dashboard (`CacheKeys.ReportingDashboard`) and both reference lists. TTLs come from the `Cache` section of `appsettings.json` — a short one for the dashboard, an hour for lookups — bound with `ValidateOnStart`, so a non-positive value fails the boot rather than silently disabling the cache. The factory is a `static` lambda taking the handler as state, which keeps it from allocating a closure per request.
+
+Consequence, and it is a decision rather than a defect: **the dashboard may lag behind the database by up to the configured TTL.** Changing a salary does not evict anything in this phase — invalidation is TTL-only, and phase 4 replaces it with event-driven eviction keyed off the same `CacheKeys` constants. `DashboardCacheTests.GetDashboard_WithinTtl_ServesStaleValue_UntilKeyIsRemoved` documents both halves of that: stale within the TTL, fresh once the key is removed. If shortening the TTL ever feels like the fix, that is the signal the feature wants phase 4, not a smaller number.
+
+The old reporting endpoints (`/count`, `/salaries`, `/taxes`) are deliberately left uncached.
+
+**Unit tests use `PassthroughHybridCache`.** Handlers now take `HybridCache` as a dependency, but a unit test has no business proving that a second call skips the factory — that is cache behaviour, covered against a real Redis in `DashboardCacheTests`. The fake in `UnitTests/Fakes` runs the factory every time, so unit tests keep testing the arithmetic and nothing else.
+
 ## Configuration
 
 - Connection string lives in `AccountingHelper.API/appsettings.local.json` (git-ignored). The `local` environment is the only one that loads this file.
 - Docker Compose credentials (`DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`, `REDIS_PORT`, `REDIS_PASSWORD`) come from a `.env` file in the project root (git-ignored). `.env.example` lists every key and must be updated whenever a new one is added.
 - The database is **PostgreSQL 16** (`postgres:16-alpine`). The healthcheck uses `pg_isready`.
+- Cache TTLs live in the `Cache` section of `appsettings.json` (`Dashboard`, `Lookups`) and bind to `CacheSettings` in `Application/Caching`, validated on start. The options class sits in Application, not API, so handlers do not depend on the web layer.
+- `Microsoft.Extensions.Logging.Abstractions` is pinned to **9.0.19** in Application: `Caching.Hybrid` requires `>= 9.0.10`, and an explicit 8.x reference downgrades it into an `NU1605` error.
 - EF Core is configured with `UseNpgsql` + `UseSnakeCaseNamingConvention()` (all column and table names are snake_case in the DB).
 - `gen_random_uuid()` is used as the default value for `Id` columns in migrations — PostgreSQL-specific.
 - `EnableRetryOnFailure` (5 retries, 5 s delay) handles transient startup connection errors.

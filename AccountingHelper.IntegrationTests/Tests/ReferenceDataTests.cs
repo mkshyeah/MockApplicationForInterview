@@ -14,6 +14,28 @@ public class ReferenceDataTests : IntegrationTestBase
     public ReferenceDataTests(IntegrationFixture fixture) : base(fixture)
     {
     }
+    
+    // Сортировка живёт в репозитории, кэш обязан её сохранить. Фиксируем явно: если однажды
+    // OrderBy переедет выше по стеку, из кэша список поедет в порядке вставки, и заметить
+    // это без такого теста будет нечем.
+    [Fact]
+    public async Task GetDepartments_ServedFromCache_KeepsTheSameOrderAsFromDatabase()
+    {
+        // ARRANGE
+        await SeedDepartmentAsync("Sales");
+        await SeedDepartmentAsync("Finance");
+        await SeedDepartmentAsync("IT");
+
+        // ACT
+        var fromDatabase = await (await Client.GetAsync("v1/departments")).Content.ReadAsStringAsync();
+        var fromCache = await (await Client.GetAsync("v1/departments")).Content.ReadAsStringAsync();
+
+        // ASSERT
+        fromCache.Should().Be(fromDatabase);
+
+        var departments = JsonSerializer.Deserialize<List<DepartmentResponse>>(fromCache, Json);
+        departments!.Select(d => d.Name).Should().Equal("Finance", "IT", "Sales");
+    }
 
     [Fact]
     public async Task GetDepartments_ReturnsAllDepartmentsOrderedByName()
