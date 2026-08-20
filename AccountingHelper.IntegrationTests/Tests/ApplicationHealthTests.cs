@@ -2,16 +2,12 @@ using System.Net;
 using System.Net.Http.Json;
 using AccountingHelper.IntegrationTests.Setup;
 using FluentAssertions;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Xunit;
 
 namespace AccountingHelper.IntegrationTests.Tests;
 
 public class ApplicationHealthTests : IntegrationTestBase
 {
-    private sealed record HealthCheckEntry(string Name, string Status);
- 
-    private sealed record HealthReportDto(string Status, List<HealthCheckEntry> Checks);
     public ApplicationHealthTests(IntegrationFixture fixture) : base(fixture)
     {
     }
@@ -36,23 +32,24 @@ public class ApplicationHealthTests : IntegrationTestBase
         report.Checks.Should().Contain(c => c.Name == "database_context" && c.Status == "Healthy");
     }
 
+    // Зеркало теста про Degraded из CacheFailOpenTests: тот прогоняется на мёртвом Redis,
+    // этот — на контейнерном живом. Обе ветки политики fail-open стали исполняемыми,
+    // и "зелёный" перестал означать просто отсутствие красного.
     [Fact]
-    public async Task GetHealthLive_WhenRedisUnavailable_Returns200AndRedisDegraded()
+    public async Task GetHealthLive_WhenRedisReachable_Returns200AndRedisHealthy()
     {
         // ARRANGE
-        // the test environment points at an unreachable Redis (see CustomWebApplicationFactory)
 
         // ACT
         var resp = await Client.GetAsync("/health/live");
 
         // ASSERT
-        // fail-open: an unreachable cache degrades the report but must not take the app
-        // out of rotation, so the status code stays 200
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var report = await resp.Content.ReadFromJsonAsync<HealthReportDto>(Json);
 
-        report!.Status.Should().Be("Degraded");
-        report.Checks.Should().Contain(c => c.Name == "redis" && c.Status == "Degraded");
+        report!.Checks.Should().Contain(c => c.Name == "redis" && c.Status == "Healthy");
+        // с живым кэшем деградировать больше нечему: агрегат обязан быть полностью зелёным
+        report.Status.Should().Be("Healthy");
     }
 }
