@@ -1,8 +1,11 @@
+using AccountingHelper.Application.Caching;
 using AccountingHelper.Application.Features.Reports.Queries.GetDashboard;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
+using AccountingHelper.UnitTests.Fakes;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace AccountingHelper.UnitTests.Application.Handlers.Reports;
@@ -27,7 +30,13 @@ public class GetDashboardQueryHandlerTests
         _unitOfWorkMock.Setup(u => u.Salaries).Returns(_salaryRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.Employees).Returns(_employeeRepositoryMock.Object);
 
-        _handler = new GetDashboardQueryHandler(_unitOfWorkMock.Object);
+        // Passthrough cache: these tests are about the arithmetic in the factory, not about
+        // whether a second call hits it. Caching itself is covered in DashboardCacheTests
+        // against a real Redis.
+        _handler = new GetDashboardQueryHandler(
+            _unitOfWorkMock.Object,
+            new PassthroughHybridCache(),
+            Options.Create(new CacheSettings()));
     }
 
     private void SetupRepositories(

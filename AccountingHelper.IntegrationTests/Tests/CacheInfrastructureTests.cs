@@ -72,4 +72,27 @@ public class CacheInfrastructureTests : IntegrationTestBase
         // иначе он переживёт ResetAsync, который ходит только по каталогу
         await cache.RemoveAsync(key);
     }
+    
+    [Fact]
+    public async Task HybridCache_WhenFactoryThrows_DoesNotCacheTheFailure()
+    {
+        // ARRANGE
+        var cache = Services.GetRequiredService<HybridCache>();
+        var key = $"cache-infrastructure-test:{Guid.NewGuid():N}";
+
+        // ACT
+        var act = async () => await cache.GetOrCreateAsync<string>(
+            key,
+            _ => throw new InvalidOperationException("factory failed"));
+
+        // ASSERT
+        await act.Should().ThrowAsync<InvalidOperationException>();
+
+        // упавшая фабрика не должна оставить после себя запись: следующий вызов обязан
+        // сходить в фабрику заново и получить нормальное значение
+        var value = await cache.GetOrCreateAsync(key, _ => ValueTask.FromResult("recovered"));
+        value.Should().Be("recovered");
+
+        await cache.RemoveAsync(key);
+    }
 }
