@@ -1,6 +1,7 @@
 using AccountingHelper.IntegrationTests.Setup;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -24,22 +25,51 @@ public class CacheInfrastructureTests : IntegrationTestBase
         cache.Should().NotBeNull();
     }
 
+    // Страж конфигурации, а не поведения. Префикс ключей приходит из базового
+    // appsettings.json; если он однажды переедет обратно в appsettings.local.json,
+    // тесты начнут писать ключи без префикса и проверять не ту схему именования,
+    // что работает в проде, — молча и без единого красного теста.
     [Fact]
-    public async Task HybridCache_WhenRedisUnavailable_StillReturnsValueFromFactory()
+    public void RedisInstanceName_ComesFromBaseAppSettings()
     {
         // ARRANGE
-        // the test environment points at an unreachable Redis (see CustomWebApplicationFactory),
-        // so every call has to fall through the dead L2 down to the factory
-        var cache = Services.GetRequiredService<HybridCache>();
-        var key = $"cache-infrastructure-test:{Guid.NewGuid():N}";
+        var configuration = Services.GetRequiredService<IConfiguration>();
 
         // ACT
-        var value = await cache.GetOrCreateAsync(
-            key,
-            _ => ValueTask.FromResult("computed-by-factory"));
+        var instanceName = configuration["Redis:InstanceName"];
 
         // ASSERT
-        // fail-open at the cache level: a dead L2 must not surface as an exception
-        value.Should().Be("computed-by-factory");
+        instanceName.Should().Be("accounting-helper:");
+    }
+
+    // Кэш живой и повторное чтение идёт не через фабрику. Проверяем наблюдаемое поведение
+    // (второй вызов не дёргает фабрику), а не содержимое Redis: запись в L2 у HybridCache
+    // fire-and-forget, ключ появляется позже ответа, и прямая проверка мигала бы.
+    [Fact]
+    public async Task HybridCache_WhenRedisReachable_ServesSecondCallWithoutInvokingFactory()
+    {
+        // ARRANGE
+        var cache = Services.GetRequiredService<HybridCache>();
+        var key = $"cache-infrastructure-test:{Guid.NewGuid():N}";
+        var factoryCalls = 0;
+
+        ValueTask<string> Factory(CancellationToken _)
+        {
+            factoryCalls++;
+            return ValueTask.FromResult("computed-by-factory");
+        }
+
+        // ACT
+        var first = await cache.GetOrCreateAsync(key, Factory);
+        var second = await cache.GetOrCreateAsync(key, Factory);
+
+        // ASSERT
+        first.Should().Be("computed-by-factory");
+        second.Should().Be("computed-by-factory");
+        factoryCalls.Should().Be(1);
+
+        // ключ временный и в CacheKeys не входит — убираем за собой сами,
+        // иначе он переживёт ResetAsync, который ходит только по каталогу
+        await cache.RemoveAsync(key);
     }
 }

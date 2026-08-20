@@ -7,21 +7,26 @@ namespace AccountingHelper.IntegrationTests.Setup;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _connectionString;
+    private readonly string _redisConnectionString;
 
-    public CustomWebApplicationFactory(string connectionString)
+    public CustomWebApplicationFactory(string connectionString, string redisConnectionString)
     {
         _connectionString = connectionString;
+        _redisConnectionString = redisConnectionString;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:DefaultConnection", _connectionString);
-        // deliberately unreachable: the test environment has no Redis, which pins down the
-        // fail-open policy (cache is an optimisation, not a source of truth).
-        // Block 3 replaces this with a Testcontainers.Redis endpoint.
-        builder.UseSetting(
-            "Redis:ConnectionString",
-            "localhost:6399,abortConnect=false,connectTimeout=500,syncTimeout=500,connectRetry=1");
+
+        // Адрес Redis приходит снаружи: IntegrationFixture передаёт сюда контейнер,
+        // DeadRedisFixture — заведомо недоступный endpoint. Строка задаётся целиком,
+        // потому что UseSetting перекрывает значение, а не сливает параметры.
+        builder.UseSetting("Redis:ConnectionString", _redisConnectionString);
+
+        // Redis:InstanceName сознательно НЕ переопределяем: он приходит из базового
+        // appsettings.json, и тесты обязаны работать с той же схемой ключей, что прод.
+        // Это зафиксировано тестом RedisInstanceName_ComesFromBaseAppSettings.
     }
 }
