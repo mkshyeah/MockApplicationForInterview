@@ -116,7 +116,7 @@ See `phase_0_plan.md` for detail. **58 tests green (30 unit + 28 integration).**
   `default(EmployeeStatus)` instead of `null` for a missing employee (404 broken); controller
   declared `409` where the service actually returns `422`.
 
-### Phase 1 — Code Quality & Consistency  ← current *(prerequisite, no new feature)*
+### Phase 1 — Code Quality & Consistency  ✅ DONE *(prerequisite, no new feature)*
 See `phase_1_plan.md`. Cleanup before MediatR:
 - Collapse duplicated per-controller validation (3 spots) into a single action filter.
 - Fix double DB round-trip in `GetEmployees` (list + count → one query).
@@ -141,7 +141,7 @@ See `phase_1_plan.md`. Cleanup before MediatR:
   `CQRS without event sourcing`, `approval workflow state machine`,
   `EF Core optimistic concurrency token`, `unit testing MediatR handlers`.
 
-### Phase 3 — Redis  +  Feature: **Company Payroll Dashboard & Analytics**
+### Phase 3 — Redis  +  Feature: **Company Payroll Dashboard & Analytics**  ✅ DONE
 - **Feature:** dashboard aggregating total monthly payroll cost, headcount by department,
   average salary by grade, total tax liability — plus reference-data lookups for Angular dropdowns.
 - **Why the tech here:** aggregates are expensive to recompute and change infrequently →
@@ -152,7 +152,10 @@ See `phase_1_plan.md`. Cleanup before MediatR:
 - *Google:* `IDistributedCache Redis`, `cache-aside pattern`, `output caching .NET 8`,
   `cache stampede`, `StackExchange.Redis ConnectionMultiplexer singleton`, `HybridCache .NET`.
 
-### Phase 4 — RabbitMQ/MassTransit  +  Feature: **Monthly Payroll Run & Bulk Import**
+### Phase 4 — RabbitMQ/MassTransit  +  Feature: **Monthly Payroll Run & Bulk Import**  ← current
+See `phase_4_plan.md`. Locked in: консьюмеры в отдельном проекте `AccountingHelper.Worker`;
+outbox отдельным блоком **после** наивной публикации (сначала прочувствовать dual-write);
+объём = payroll run + CSV import + событийная инвалидация кэша; MassTransit **v8** (v9 платный).
 - **Prerequisite reading:** queues vs pub/sub; delivery guarantees (why exactly-once is a myth);
   why consumers must be idempotent. Steepest conceptual jump — read first.
 - **Feature:** "Run Payroll for month X" — a **payslip** per active employee
@@ -327,8 +330,11 @@ secures. Foundations (0–2) come first so all of this is safe to build, and the
       2a: all endpoints on MediatR, ValidationFilter removed → 2b: leave workflow with optimistic
       concurrency; pre-phase-3 repository backlog closed: narrow interfaces, tracked updates,
       DebitOutcome, ITimestamped stamping, CreatedAt shim removed)
-- [ ] Phase 3 — Redis + Payroll Dashboard  ← current (see `phase_3_plan.md`)
-- [ ] Phase 4 — RabbitMQ + Payroll Run & Bulk Import
+- [x] Phase 3 — Redis + Payroll Dashboard  ✅ done (145 tests: 59 unit + 86 integration;
+      блок 1 Redis-инфраструктура + fail-open политика → блок 2 дашборд и справочники без кэша →
+      блок 3 cache-aside на HybridCache, TTL-инвалидация, каталог `CacheKeys` как интерфейс к фазе 4;
+      see `phase_3_plan.md`)
+- [ ] Phase 4 — RabbitMQ + Payroll Run & Bulk Import  ← current (see `phase_4_plan.md`)
 - [ ] Phase 5 — SignalR + Activity Feed & Run Progress
 - [ ] Phase 6 — GraphQL + Directory & Reporting Explorer
 - [ ] Phase 7 — Auth + Roles & Self-Service Portal
