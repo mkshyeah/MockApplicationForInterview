@@ -66,12 +66,13 @@ public static class ServiceCollectionExtensions
             .AddNpgSql(
                 connectionString: connectionString,
                 name: "postgresql",
-                tags: ["database", "postgres", "live"])
+                tags: ["database", "postgres", "live", "ready"])
             .AddRedis(
                 redisConnectionString: redisConnectionString,
                 name: "redis",
                 failureStatus: HealthStatus.Degraded,
-                tags: ["cache", "redis", "live"]);
+                tags: ["cache", "redis", "live", "ready"]);
+        
         
         return services;
     }

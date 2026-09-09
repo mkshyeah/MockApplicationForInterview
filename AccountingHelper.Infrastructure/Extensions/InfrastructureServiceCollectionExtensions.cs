@@ -30,7 +30,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddHealthChecks()
             .AddDbContextCheck<ApplicationDbContext>(
                 name: "database_context",
-                tags: ["database", "efcore", "live"]);
+                tags: ["database", "efcore", "live", "ready"]);
         
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();

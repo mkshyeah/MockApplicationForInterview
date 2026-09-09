@@ -2,6 +2,7 @@ using AccountingHelper.Infrastructure.Messaging;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
 namespace AccountingHelper.Infrastructure.Extensions;
@@ -24,6 +25,14 @@ public static class MessagingServiceCollectionExtensions
         services.AddMassTransit(x =>
         {
             x.SetKebabCaseEndpointNameFormatter();
+
+            x.ConfigureHealthCheckOptions(options =>
+            {
+                options.Name = "rabbitmq-bus";
+                options.MinimalFailureStatus = HealthStatus.Unhealthy;
+                options.Tags.Add("broker");
+                options.Tags.Add("ready");
+            });
             
             configureConsumers?.Invoke(x);
             

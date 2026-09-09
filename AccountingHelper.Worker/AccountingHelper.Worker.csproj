@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AccountingHelper.Application\AccountingHelper.Application.csproj" />
+    <ProjectReference Include="..\AccountingHelper.Contracts\AccountingHelper.Contracts.csproj" />
     <ProjectReference Include="..\AccountingHelper.Infrastructure\AccountingHelper.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

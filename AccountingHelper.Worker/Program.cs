@@ -1,6 +1,7 @@
 using AccountingHelper.Application.Caching;
 using AccountingHelper.Application.Extensions;
 using AccountingHelper.Infrastructure.Extensions;
+using AccountingHelper.Worker.Consumers;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,7 +60,10 @@ try
         .AddInfrastructureServices(builder.Configuration)
         .AddApplicationServices();
 
-    builder.Services.AddMessagingServices(configuration: builder.Configuration);
+    builder.Services.AddMessagingServices(configuration: builder.Configuration, x =>
+    {
+        x.AddConsumer<PingConsumer>();
+    });
     
     builder.ConfigureContainer(new DefaultServiceProviderFactory(new ServiceProviderOptions
     {

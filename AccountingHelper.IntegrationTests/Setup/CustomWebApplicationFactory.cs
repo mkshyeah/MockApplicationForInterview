@@ -8,25 +8,32 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _connectionString;
     private readonly string _redisConnectionString;
+    private readonly string _rabbitMqConnectionString;
 
-    public CustomWebApplicationFactory(string connectionString, string redisConnectionString)
+    public CustomWebApplicationFactory(
+        string connectionString,
+        string redisConnectionString,
+        string rabbitMqConnectionString)
     {
         _connectionString = connectionString;
         _redisConnectionString = redisConnectionString;
+        _rabbitMqConnectionString = rabbitMqConnectionString;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:DefaultConnection", _connectionString);
-
-        // Адрес Redis приходит снаружи: IntegrationFixture передаёт сюда контейнер,
-        // DeadRedisFixture — заведомо недоступный endpoint. Строка задаётся целиком,
-        // потому что UseSetting перекрывает значение, а не сливает параметры.
         builder.UseSetting("Redis:ConnectionString", _redisConnectionString);
+        
+        var uri = new Uri(_rabbitMqConnectionString);
+        var credentials = uri.UserInfo.Split(':', 2);
 
-        // Redis:InstanceName сознательно НЕ переопределяем: он приходит из базового
-        // appsettings.json, и тесты обязаны работать с той же схемой ключей, что прод.
-        // Это зафиксировано тестом RedisInstanceName_ComesFromBaseAppSettings.
+        builder.UseSetting("RabbitMq:Host", uri.Host);
+        builder.UseSetting("RabbitMq:Port", uri.Port.ToString());
+        builder.UseSetting("RabbitMq:VirtualHost", "/");                                                                                                                                                     
+        builder.UseSetting("RabbitMq:UserName", Uri.UnescapeDataString(credentials[0]));                                                                                                                     
+        builder.UseSetting("RabbitMq:Password", Uri.UnescapeDataString(credentials[1]));
+        
     }
 }
