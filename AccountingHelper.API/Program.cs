@@ -33,7 +33,8 @@ try
     builder.Services
         .AddApiServices(builder.Configuration) 
         .AddInfrastructureServices(builder.Configuration)
-        .AddApplicationServices();
+        .AddApplicationServices()
+        .AddMessagingServices(builder.Configuration);
 
     builder.Host.UseDefaultServiceProvider((ctx, o) =>
     {

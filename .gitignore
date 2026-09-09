@@ -86,8 +86,8 @@ _ReSharper*/
 .nuget/
 
 ## ASP.NET / EF Core
-appsettings.*.Local.json
-appsettings.Local.json
+appsettings.*.[Ll]ocal.json
+appsettings.[Ll]ocal.json
 *.pfx
 *.pubxml
 *.publishproj
