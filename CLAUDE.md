@@ -5,11 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Start the database (reads DB_USER, DB_PASSWORD, DB_NAME, DB_PORT from .env)
+# Start Postgres, Redis and RabbitMQ (credentials read from .env)
 docker compose up -d
 
 # Run the API (local environment loads appsettings.local.json with the connection string)
 dotnet run --project AccountingHelper.API --environment local
+
+# Run the Worker (its own appsettings.local.json, also git-ignored)
+dotnet run --project AccountingHelper.Worker --environment local
 
 # Build the solution
 dotnet build AccountingHelper.sln
@@ -17,27 +20,37 @@ dotnet build AccountingHelper.sln
 # Run unit tests
 dotnet test AccountingHelper.UnitTests
 
+# Run integration tests (spins Postgres, Redis and RabbitMQ containers; Docker must be running)
+dotnet test AccountingHelper.IntegrationTests
+
 # EF Core migrations (always pass --environment local so the connection string is available)
 dotnet ef migrations add <Name> --project AccountingHelper.Infrastructure --startup-project AccountingHelper.API -- --environment local
 dotnet ef database update --project AccountingHelper.Infrastructure --startup-project AccountingHelper.API -- --environment local
 dotnet ef migrations remove --project AccountingHelper.Infrastructure --startup-project AccountingHelper.API -- --environment local
 ```
 
-Swagger UI is available at `http://localhost:5228/swagger` when running in the `local` environment.
+Swagger UI is available at `http://localhost:5228/swagger` when running in the `local` environment. The RabbitMQ management UI is at `http://localhost:15672` — the fastest way to see what exchanges, queues and bindings MassTransit actually declared.
 
 ## Architecture
 
-Clean Architecture with four projects and one test project:
+Clean Architecture with five projects and two test projects:
 
 | Project | Role |
 |---|---|
 | `AccountingHelper.Domain` | Domain models, enums, repository interfaces, `IUnitOfWork` |
 | `AccountingHelper.Application` | Service interfaces/implementations, DTOs, FluentValidation validators, exception types, Application-layer mappings |
-| `AccountingHelper.Infrastructure` | EF Core entities, `DbContext`, repository implementations, Infrastructure-layer mappings, migrations |
+| `AccountingHelper.Infrastructure` | EF Core entities, `DbContext`, repository implementations, Infrastructure-layer mappings, migrations, MassTransit registration |
+| `AccountingHelper.Contracts` | Message contracts. References nothing — not even MassTransit |
 | `AccountingHelper.API` | Controllers, middleware (`GlobalExceptionHandler`, `CorrelationIdMiddleware`), `ServiceCollectionExtensions`, `Program.cs` |
+| `AccountingHelper.Worker` | Generic Host (Worker SDK, no HTTP) running the consumers |
 | `AccountingHelper.UnitTests` | xUnit + Moq unit tests for domain models and application services |
+| `AccountingHelper.IntegrationTests` | xUnit + Testcontainers tests against a real Postgres, Redis and RabbitMQ |
 
-Dependency direction: API → Application → Domain ← Infrastructure.
+Dependency direction: API → Application → Domain ← Infrastructure. Worker sits beside the API — same Application and Infrastructure, no Kestrel — so `AccountingHelper.API` is never referenced from it.
+
+**The Worker is a separate process, not a `BackgroundService` inside the API.** Otherwise "does not block HTTP" stays a slogan: a bulk import running in the API process eats the same thread pool and memory that serves the dashboard. Separate processes also scale and deploy independently. Nothing in the Worker owns a loop — `AddMassTransit` registers the hosted service that opens the connection, subscribes, and keeps the process alive; consumers are invoked by the bus.
+
+**Migrations belong to the API.** `ApplyLocalMigrations` stays in `Program.cs` of the API and must not be copied into the Worker: two hosts racing to migrate one database is a startup-order bug that only shows up under load.
 
 ## Key patterns
 
@@ -86,9 +99,10 @@ Dependency direction: API → Application → Domain ← Infrastructure.
 - `AddRedis` is registered with `failureStatus: HealthStatus.Degraded`, so `/health/live` still answers 200 when the cache is down and an orchestrator does not pull the instance out of rotation.
 - The Redis connection string carries `abortConnect=false` (a failed first connect must not kill the multiplexer permanently) plus short `connectTimeout`/`syncTimeout` — with the 5 s defaults every request would pay that delay before falling back to the database, and a slow success is worse than a fast failure.
 - A *missing* connection string is a different case and still throws at startup: that is a configuration error, not a runtime outage, and deploying without a cache silently is worse than failing loudly.
-- Integration tests run in two environments, and both branches of the policy are executable. The main collection (`IntegrationFixture`, `"Integration"`) gets a live Redis from Testcontainers — that is what the cache tests need. `CacheFailOpenTests` runs in its own collection (`DeadRedisFixture`, `"Integration:DeadRedis"`) against a live Postgres and an endpoint that cannot answer (`RedisEndpoints.Dead`), which pins the fail-open policy down. Collection parallelization is disabled in `AssemblyInfo.cs`: two collections mean two hosts and two container sets, and xUnit would otherwise run them at once, with Respawn truncating the database under someone else's test.
+- Integration tests run in three environments, so every branch of both policies is executable. The main collection (`IntegrationFixture`, `"Integration"`) gets live Postgres, Redis and RabbitMQ from Testcontainers. `CacheFailOpenTests` runs against a live Postgres and an endpoint that cannot answer (`DeadRedisFixture`, `"Integration:DeadRedis"`, `RedisEndpoints.Dead`), which pins fail-open down; `BrokerFailFastTests` mirrors it with live Postgres and Redis and a dead broker (`DeadBrokerFixture`, `"Integration:DeadBroker"`, `RabbitMqEndpoints.Dead`). Each dead-dependency fixture keeps its own containers rather than sharing: sharing across collection fixtures needs statics, which is the coupling being avoided, and the surviving dependencies must be genuinely healthy or the assertion would prove the wrong thing. Collection parallelization is disabled in `AssemblyInfo.cs` — several collections mean several hosts and container sets, and xUnit would otherwise run them at once, with Respawn truncating the database under someone else's test.
+- A dead broker does not stop a host from starting: MassTransit retries the connection in the background rather than throwing on first connect. `BrokerFailFastTests.GetHealthLive_WhenBrokerUnavailable_Returns200` is what proves it, the same way `abortConnect=false` was checked rather than assumed for Redis.
 
-**`HybridCache` over Redis.** `AddStackExchangeRedisCache` (L2) must be registered before `AddHybridCache()` so the latter picks up the `IDistributedCache` as its second level. Verified behaviour worth knowing:
+**`HybridCache` over Redis.** `AddStackExchangeRedisCache` registers the `IDistributedCache` that `HybridCache` uses as L2. Registration *order* does not matter — `DefaultHybridCache` resolves `IDistributedCache` from the provider when it is constructed, i.e. after the container is built, so both call sites only have to run before `Build()`. What matters is that `AddStackExchangeRedisCache` runs at all: without it the L2 field is simply `null` and `HybridCache` degrades to a single-level in-process cache — no exception, no warning, so the failure mode is silent loss of the second level, not a startup error. Verified behaviour worth knowing:
 - `GetOrCreateAsync` swallows an unreachable L2 and falls through to the factory — no `try/catch` of your own is needed.
 - L2 writes are fire-and-forget: the key appears in Redis *after* the response is returned. Assert on observable behaviour (a second call does not invoke the factory), never on Redis contents immediately after a request.
 - The effective key is `InstanceName` + the key passed in (`accounting-helper:` + `reporting:dashboard:v1`). Do not repeat the prefix in the key catalogue. `InstanceName` comes from the base `appsettings.json`, so tests see the production naming scheme; `CacheInfrastructureTests.RedisInstanceName_ComesFromBaseAppSettings` guards that.
@@ -103,10 +117,29 @@ The old reporting endpoints (`/count`, `/salaries`, `/taxes`) are deliberately l
 
 **Unit tests use `PassthroughHybridCache`.** Handlers now take `HybridCache` as a dependency, but a unit test has no business proving that a second call skips the factory — that is cache behaviour, covered against a real Redis in `DashboardCacheTests`. The fake in `UnitTests/Fakes` runs the factory every time, so unit tests keep testing the arithmetic and nothing else.
 
+**The broker is fail-fast, and that is the opposite of the cache on purpose.** Redis holds a derivative of Postgres, so losing it degrades an answer. RabbitMQ holds messages that exist nowhere else, so losing it means work will be dropped — an API that cannot publish must stop taking traffic. Both policies are visible in one `/health/ready` body: `redis` `Degraded` at 200, `rabbitmq-bus` `Unhealthy` at 503. `BrokerFailFastTests` and `CacheFailOpenTests` are deliberate mirrors of each other; keep them that way.
+
+**Liveness excludes the broker; readiness includes everything.** `/health/live` filters on the `live` tag, `/health/ready` on `ready`, and the bus check carries only `ready`. Liveness answers "is this process broken, restart me" — an external dependency must never trigger that, or an orchestrator starts killing healthy instances over someone else's outage. Readiness answers "can this instance take traffic". `Degraded` maps to 200 on both.
+
+**The bus health check comes from MassTransit, not `AspNetCore.HealthChecks.Rabbitmq`.** Since its 8.x releases that package wants an `IConnection` registered in DI, which means opening a connection by hand — exactly what is avoided with Redis and the multiplexer. MassTransit's own check also watches the connection messages actually travel over, rather than a second one opened for the probe. Name and tags are set explicitly through `ConfigureHealthCheckOptions`; the content of `/health/ready` is a public contract, like queue names.
+
+**Messaging registration lives in one place.** `AddMessagingServices` (Infrastructure) takes an optional `Action<IBusRegistrationConfigurator>`: the API calls it without consumers, the Worker with them. Inside, order matters and is not obvious — `SetKebabCaseEndpointNameFormatter()` and the consumer registrations must both run *before* `UsingRabbitMq`, because `ConfigureEndpoints(context)` builds queues from whatever is registered by the time it runs. Registering consumers after it yields a bus with no queues and no error. Queue names are kebab-case by explicit choice, not by default: they are infrastructure's public contract.
+
+**Publish through `IPublishEndpoint`, never `IBus`.** `IPublishEndpoint` is scoped, and the transactional outbox in a later block hooks precisely that scoped publish. An `IBus` call goes around the outbox, so the outbox becomes decoration while still looking installed. This is the most expensive trap of the phase, which is why the rule predates the outbox itself.
+
+**Consumers are transport adapters.** A consumer pulls data out of the message and dispatches a MediatR command; the logic lives in Application. Logic inside a class that can only be reached from RabbitMQ cannot be called any other way and cannot be unit-tested without a harness — the same reason controllers stay thin.
+
+**Integration tests run consumers in their own harness-backed provider.** `MessagingRoundTripTests` builds a `ServiceCollection` with `AddMassTransitTestHarness` pointed at the shared RabbitMQ container, instead of reusing the API host's bus. The reason is mechanical: `AddMassTransit` throws when called twice, and `Program.cs` has already registered it without consumers, so a `WebApplicationFactory` cannot add them on top. What this does **not** cover: that the API host publishes correctly, and that the Worker host boots. The first arrives with the first real publish; the second needs its own smoke test.
+
+**No `Sleep` in messaging tests.** Wait on a condition with a timeout — `harness.Consumed.Any<T>(...)` or polling a request until a predicate holds. A delay after publishing is a flaky test with extra steps.
+
+**Queues are shared state, and are not cleaned between tests yet.** `IntegrationFixture.ResetAsync` truncates the database and drops cache keys, but does not purge queues. That is safe only because the single consumer merely logs, and because `MessagingRoundTripTests` filters on a unique `PingId` — a leftover message from an earlier test physically cannot be mistaken for this test's own. Both halves of that are load-bearing. The first consumer that changes state, or any relaxation of that filter, needs a purge in `ResetAsync`; a per-run vhost isolates run from run, not test from test, so it is insurance against a shared broker rather than a substitute for purging.
+
 ## Configuration
 
-- Connection string lives in `AccountingHelper.API/appsettings.local.json` (git-ignored). The `local` environment is the only one that loads this file.
-- Docker Compose credentials (`DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`, `REDIS_PORT`, `REDIS_PASSWORD`) come from a `.env` file in the project root (git-ignored). `.env.example` lists every key and must be updated whenever a new one is added.
+- Connection strings live in `appsettings.local.json` (git-ignored), one per host: `AccountingHelper.API/` and `AccountingHelper.Worker/`. The `local` environment is the only one that loads them, and the Worker needs its own copy — it cannot see the API's.
+- Docker Compose credentials (`DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`, `REDIS_PORT`, `REDIS_PASSWORD`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `RABBITMQ_PORT`, `RABBITMQ_MANAGEMENT_PORT`) come from a `.env` file in the project root (git-ignored). `.env.example` lists every key and must be updated whenever a new one is added.
+- Broker settings live in the `RabbitMq` section (`Host`, `Port`, `VirtualHost`, `UserName`, `Password`) and bind to `RabbitMqSettings` in `Infrastructure/Messaging` with `ValidateOnStart`. Unlike `CacheSettings` this class stays in Infrastructure: it is transport configuration, and no handler has any business reading it.
 - The database is **PostgreSQL 16** (`postgres:16-alpine`). The healthcheck uses `pg_isready`.
 - Cache TTLs live in the `Cache` section of `appsettings.json` (`Dashboard`, `Lookups`) and bind to `CacheSettings` in `Application/Caching`, validated on start. The options class sits in Application, not API, so handlers do not depend on the web layer.
 - `Microsoft.Extensions.Logging.Abstractions` is pinned to **9.0.19** in Application: `Caching.Hybrid` requires `>= 9.0.10`, and an explicit 8.x reference downgrades it into an `NU1605` error.
@@ -115,7 +148,9 @@ The old reporting endpoints (`/count`, `/salaries`, `/taxes`) are deliberately l
 - `EnableRetryOnFailure` (5 retries, 5 s delay) handles transient startup connection errors.
 - The cache is **Redis 7** (`redis:7-alpine`), no volume — cache contents are ephemeral by design. The password is applied through `command: redis-server --requirepass ...`; the official image ignores a `REDIS_PASSWORD` env var (that is a bitnami convention). Persistence is switched off explicitly (`--save "" --appendonly no`).
 - The compose healthcheck is `redis-cli ping | grep -q PONG`, not a bare `redis-cli ping`: `redis-cli` exits 0 even when `AUTH` fails, so only checking the exit code would report healthy on a broken password. `REDISCLI_AUTH` supplies the password so it never appears in the healthcheck command.
-- Health checks: `AddNpgSql` (direct connection probe, tagged `database/postgres/live`), `AddDbContextCheck<ApplicationDbContext>` (EF Core probe, tagged `database/efcore/live`, registered in `InfrastructureServiceCollectionExtensions`) and `AddRedis` (tagged `cache/redis/live`). `/health/live` filters on the `live` tag and maps `Degraded` to 200.
+- The broker is **RabbitMQ 3** with the management plugin (`rabbitmq:3-management-alpine`), no volume. Losing it on `docker compose down` costs nothing worth keeping: MassTransit re-declares the whole topology at startup, and messages left in a dev queue are exactly what should be discarded. Adding a volume later would require `hostname:` to be pinned as well — RabbitMQ stores data under `mnesia/rabbit@<hostname>`, and the container's hostname defaults to its id, so a volume without a fixed hostname silently starts from an empty directory on every recreate.
+- The RabbitMQ healthcheck is `rabbitmq-diagnostics -q ping && rabbitmqctl authenticate_user ...`, not the ping alone: ping only proves the Erlang node answers and never touches AMQP credentials, so a broken `RABBITMQ_PASSWORD` would report healthy. The same lesson as `redis-cli ping`, in a different disguise. The password comes from the container's own env so it never appears in the compose command.
+- Health checks: `AddNpgSql` (direct connection probe, tagged `database/postgres/live/ready`), `AddDbContextCheck<ApplicationDbContext>` (EF Core probe, tagged `database/efcore/live/ready`, registered in `InfrastructureServiceCollectionExtensions`), `AddRedis` (tagged `cache/redis/live/ready`) and MassTransit's bus check, registered inside `AddMessagingServices` as `rabbitmq-bus` (tagged `broker/ready` only). `/health/live` filters on `live`, `/health/ready` on `ready`; both map `Degraded` to 200 and `Unhealthy` to 503.
 
 ## API routes
 
