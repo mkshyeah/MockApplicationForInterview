@@ -12,6 +12,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.UnitTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.IntegrationTests", "AccountingHelper.IntegrationTests\AccountingHelper.IntegrationTests.csproj", "{34D4D31B-1821-41FC-B9BA-C6E033D997F5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.Worker", "AccountingHelper.Worker\AccountingHelper.Worker.csproj", "{65E5ACC4-3E03-40D8-8345-251A6F097875}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountingHelper.Contracts", "AccountingHelper.Contracts\AccountingHelper.Contracts.csproj", "{97D1A96D-5565-4463-979D-F1BDAEA08AA3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +46,13 @@ Global
 		{34D4D31B-1821-41FC-B9BA-C6E033D997F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34D4D31B-1821-41FC-B9BA-C6E033D997F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34D4D31B-1821-41FC-B9BA-C6E033D997F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65E5ACC4-3E03-40D8-8345-251A6F097875}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65E5ACC4-3E03-40D8-8345-251A6F097875}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65E5ACC4-3E03-40D8-8345-251A6F097875}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65E5ACC4-3E03-40D8-8345-251A6F097875}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97D1A96D-5565-4463-979D-F1BDAEA08AA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97D1A96D-5565-4463-979D-F1BDAEA08AA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97D1A96D-5565-4463-979D-F1BDAEA08AA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97D1A96D-5565-4463-979D-F1BDAEA08AA3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

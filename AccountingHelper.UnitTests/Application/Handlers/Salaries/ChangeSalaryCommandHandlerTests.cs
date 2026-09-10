@@ -5,6 +5,7 @@ using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
 using AccountingHelper.UnitTests.Common;
 using FluentAssertions;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -20,6 +21,10 @@ public class ChangeSalaryCommandHandlerTests
     private readonly Mock<IEmployeeRepository> _employeeRepositoryMock;
     private readonly Mock<ISalaryRepository> _salaryRepositoryMock;
     private readonly Mock<ILogger<ChangeSalaryCommandHandler>> _loggerMock;
+
+    // Nothing is ever verified on this mock. Publishing is transport behaviour, covered against
+    // a real broker in the integration suite; asserting it here would only restate the handler.
+    private readonly Mock<IPublishEndpoint> _publishEndpointMock;
     private readonly ChangeSalaryCommandHandler _handler;
 
     public ChangeSalaryCommandHandlerTests()
@@ -28,13 +33,17 @@ public class ChangeSalaryCommandHandlerTests
         _employeeRepositoryMock = new Mock<IEmployeeRepository>();
         _salaryRepositoryMock = new Mock<ISalaryRepository>();
         _loggerMock = new Mock<ILogger<ChangeSalaryCommandHandler>>();
+        _publishEndpointMock = new Mock<IPublishEndpoint>();
 
         _unitOfWorkMock.Setup(u => u.Employees).Returns(_employeeRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.Salaries).Returns(_salaryRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _handler = new ChangeSalaryCommandHandler(_unitOfWorkMock.Object, _loggerMock.Object);
+        _handler = new ChangeSalaryCommandHandler(
+            _unitOfWorkMock.Object,
+            _publishEndpointMock.Object,
+            _loggerMock.Object);
     }
 
     private static ChangeSalaryCommand ValidCommand(Guid? employeeId = null) => new(

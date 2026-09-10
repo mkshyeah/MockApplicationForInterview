@@ -36,7 +36,7 @@ public class GetDashboardQueryHandlerTests
         _handler = new GetDashboardQueryHandler(
             _unitOfWorkMock.Object,
             new PassthroughHybridCache(),
-            Options.Create(new CacheSettings()));
+            new CachePolicies(Options.Create(new CacheSettings())));
     }
 
     private void SetupRepositories(

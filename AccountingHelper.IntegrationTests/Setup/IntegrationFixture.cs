@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Respawn;
 using Testcontainers.PostgreSql;
+using Testcontainers.RabbitMq;
 using Testcontainers.Redis;
 using Xunit;
 
@@ -16,20 +17,23 @@ public class IntegrationFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine").Build();
     private readonly RedisContainer _redis = new RedisBuilder("redis:7-alpine").Build();
+    private readonly RabbitMqContainer _rabbitMq = new RabbitMqBuilder("rabbitmq:3-management-alpine").Build();
 
     private Respawner _respawner = null!;
     private DbConnection _connection = null!;
 
     public CustomWebApplicationFactory Factory { get; private set; } = null!;
     public HttpClient CreateClient() => Factory.CreateClient();
+    public string RabbitMqConnectionString => _rabbitMq.GetConnectionString();
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
+        await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync(), _rabbitMq.StartAsync());
 
         Factory = new CustomWebApplicationFactory(
             _postgres.GetConnectionString(),
-            RedisEndpoints.Live(_redis.GetConnectionString()));
+            RedisEndpoints.Live(_redis.GetConnectionString()),
+            _rabbitMq.GetConnectionString());
         
         await using (var scope = Factory.Services.CreateAsyncScope())
         {
@@ -69,6 +73,9 @@ public class IntegrationFixture : IAsyncLifetime
     {
         await _connection.DisposeAsync();
         Factory.Dispose();
-        await Task.WhenAll(_postgres.DisposeAsync().AsTask(), _redis.DisposeAsync().AsTask());
+        await Task.WhenAll(
+            _postgres.DisposeAsync().AsTask(),
+            _redis.DisposeAsync().AsTask(),
+            _rabbitMq.DisposeAsync().AsTask());
     }
 }

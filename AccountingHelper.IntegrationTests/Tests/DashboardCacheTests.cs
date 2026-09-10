@@ -5,12 +5,16 @@ using AccountingHelper.Application.Caching;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.IntegrationTests.Setup;
+using AccountingHelper.Worker.Consumers;
 using FluentAssertions;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Sdk;
 
 namespace AccountingHelper.IntegrationTests.Tests;
 
@@ -30,42 +34,66 @@ public class DashboardCacheTests : IntegrationTestBase
         return (await resp.Content.ReadFromJsonAsync<DashboardResponse>(Json))!;
     }
 
+    private async Task<List<DepartmentResponse>> GetDepartmentsAsync()
+    {
+        var resp = await Client.GetAsync("v1/departments");
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return (await resp.Content.ReadFromJsonAsync<List<DepartmentResponse>>(Json))!;
+    }
+
     private Task RemoveDashboardKeyAsync() =>
         Services.GetRequiredService<HybridCache>()
             .RemoveAsync(CacheKeys.ReportingDashboard)
             .AsTask();
 
-    // Обе половины в одном тесте намеренно. Первая половина сама по себе зелёная
-    // и при наглухо сломанном кэше — она доказывает только то, что ответ не изменился.
-    // Смысл появляется вместе со второй: сняли ключ — значение обязано обновиться.
+    private async Task<DashboardResponse> WaitForDashboardAsync(
+        Func<DashboardResponse, bool> predicate,
+        TimeSpan? timeout = null)
+    {
+        var limit = timeout ?? TimeSpan.FromSeconds(10);
+        var stopwatch = Stopwatch.StartNew();
+        DashboardResponse? last = null;
+
+        while (stopwatch.Elapsed < limit)
+        {
+            last = await GetDashboardAsync();
+            if (predicate(last)) return last;
+
+            await Task.Delay(50);
+        }
+
+        throw new XunitException(
+            $"Dashboard did not reach the expected state within {limit}. " +
+            $"Last seen payroll: {last?.TotalMonthlyPayroll}");
+    }
+
+    // Было: в пределах TTL дашборд имел право отставать, и снятие ключа это лечило.
+    // Стало: событие снимает ключ само, поэтому отставания быть не должно вовсе.
+    // TTL в тестовой конфигурации час — если значение освежилось, объяснение только одно.
     [Fact]
-    public async Task GetDashboard_WithinTtl_ServesStaleValue_UntilKeyIsRemoved()
+    public async Task GetDashboard_AfterSalaryChanged_ServesFreshValue_WithoutWaitingForTtl()
     {
         // ARRANGE
+        await using var evictor = await CacheInvalidationHost.StartAsync(
+            Services.GetRequiredService<IConfiguration>(),
+            RabbitMqConnectionString);
+
         var itId = await SeedDepartmentAsync("IT");
         var juniorId = await SeedPositionAsync("Junior Developer", EmployeeGrade.Junior);
         var employee = await CreateEmployeeAsync(itId, juniorId, salary: 1000m);
 
-        var before = await GetDashboardAsync();
-        before.TotalMonthlyPayroll.Should().Be(1_000.00m);
+        (await GetDashboardAsync()).TotalMonthlyPayroll.Should().Be(1_000.00m);
 
+        // ACT
         var changeResp = await Client.PutAsJsonAsync($"v1/employees/{employee.Id}/salaries", new
         {
             amount = 10_000m, salaryType = "Monthly"
         });
         changeResp.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // ACT — первая половина: в пределах TTL дашборд имеет право отставать
-        var stale = await GetDashboardAsync();
-
         // ASSERT
-        stale.TotalMonthlyPayroll.Should().Be(1_000.00m);
-
-        // ACT — вторая половина: снимаем ключ, значение обязано обновиться
-        await RemoveDashboardKeyAsync();
-        var fresh = await GetDashboardAsync();
-
-        // ASSERT
+        var fresh = await WaitForDashboardAsync(d => d.TotalMonthlyPayroll == 10_000.00m);
         fresh.TotalMonthlyPayroll.Should().Be(10_000.00m);
     }
 
@@ -148,5 +176,45 @@ public class DashboardCacheTests : IntegrationTestBase
         // ASSERT
         fromCache.Should().Be(fromDatabase);
         fromCache.Should().Contain("\"grade\":\"Senior\"");
+    }
+
+    [Fact]
+    public async Task SalaryChange_EvictsDashboard_ButNotLookups()
+    {
+        // ARRANGE
+        await using var evictor = await CacheInvalidationHost.StartAsync(
+            Services.GetRequiredService<IConfiguration>(),
+            RabbitMqConnectionString);
+
+        var itId = await SeedDepartmentAsync("IT");
+        var juniorId = await SeedPositionAsync("Junior Developer", EmployeeGrade.Junior);
+        var employee = await CreateEmployeeAsync(itId, juniorId, salary: 1000m);
+
+        // прогреваем оба кэша
+        (await GetDashboardAsync()).TotalMonthlyPayroll.Should().Be(1_000.00m);
+        var departmentsBefore = await GetDepartmentsAsync();
+        departmentsBefore.Should().Contain(d => d.Name == "IT");
+
+        // имя отдела меняем мимо API — в кэше обязано остаться старое
+        await WithDbContextAsync(async db =>
+        {
+            var department = await db.Departments.SingleAsync(d => d.Id == itId);
+            department.Name = "Renamed";
+            await db.SaveChangesAsync();
+        });
+
+        // ACT
+        await Client.PutAsJsonAsync($"v1/employees/{employee.Id}/salaries", new
+        {
+            amount = 10_000m, salaryType = "Monthly"
+        });
+
+        // ASSERT
+        // дашборд освежился — значит сообщение обработано, и это точка синхронизации:
+        // дальше можно спрашивать справочник, не гадая, успел ли консьюмер
+        await WaitForDashboardAsync(d => d.TotalMonthlyPayroll == 10_000.00m);
+
+        var departmentsAfter = await GetDepartmentsAsync();
+        departmentsAfter.Should().Contain(d => d.Name == "IT");
     }
 }

@@ -18,15 +18,11 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
     public GetDashboardQueryHandler(
         IUnitOfWork unitOfWork,
         HybridCache cache,
-        IOptions<CacheSettings> cacheSettings)
+        CachePolicies cachePolicies)
     {
         _unitOfWork = unitOfWork;
         _cache = cache;
-        _cacheOptions = new HybridCacheEntryOptions
-        {
-            Expiration = cacheSettings.Value.Dashboard,
-            LocalCacheExpiration = cacheSettings.Value.Dashboard
-        };
+        _cacheOptions = cachePolicies.ReportingDashboard;
     }
     
     public async Task<DashboardResponse> Handle(GetDashboardQuery request, CancellationToken ct)

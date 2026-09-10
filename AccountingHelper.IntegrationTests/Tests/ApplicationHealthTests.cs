@@ -52,4 +52,19 @@ public class ApplicationHealthTests : IntegrationTestBase
         // с живым кэшем деградировать больше нечему: агрегат обязан быть полностью зелёным
         report.Status.Should().Be("Healthy");
     }
+
+    [Fact]
+    public async Task GetHealthReady_WhenBrokerReachable_Returns200AndBusHealthy()
+    {
+        // ACT
+        var resp = await Client.GetAsync("/health/ready");
+        
+        // ASSERT
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var report = await resp.Content.ReadFromJsonAsync<HealthReportDto>(Json);
+        report!.Checks.Should().Contain(c => c.Name == "rabbitmq-bus" && c.Status == "Healthy");
+    }
+    
+    
 }

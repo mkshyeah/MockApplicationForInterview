@@ -17,15 +17,11 @@ public class GetDepartmentsQueryHandler : IRequestHandler<GetDepartmentsQuery, I
     public GetDepartmentsQueryHandler(
         IUnitOfWork unitOfWork,
         HybridCache cache,
-        IOptions<CacheSettings> cacheSettings)
+        CachePolicies cachePolicies)
     {
         _unitOfWork = unitOfWork;
         _cache = cache;
-        _cacheOptions = new HybridCacheEntryOptions
-        {
-            Expiration = cacheSettings.Value.Lookups,
-            LocalCacheExpiration = cacheSettings.Value.Lookups
-        };
+        _cacheOptions = cachePolicies.Lookups;
     }
 
     public async Task<IReadOnlyList<DepartmentResponse>> Handle(

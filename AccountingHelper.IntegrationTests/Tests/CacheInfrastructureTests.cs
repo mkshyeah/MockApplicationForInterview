@@ -42,11 +42,14 @@ public class CacheInfrastructureTests : IntegrationTestBase
         instanceName.Should().Be("accounting-helper:");
     }
 
-    // Кэш живой и повторное чтение идёт не через фабрику. Проверяем наблюдаемое поведение
-    // (второй вызов не дёргает фабрику), а не содержимое Redis: запись в L2 у HybridCache
-    // fire-and-forget, ключ появляется позже ответа, и прямая проверка мигала бы.
+    // Повторное чтение идёт не через фабрику. Проверяем наблюдаемое поведение, а не содержимое
+    // Redis: запись в L2 у HybridCache fire-and-forget, ключ появляется позже ответа, и прямая
+    // проверка мигала бы. Границу теста стоит назвать честно: второй вызов обслуживает L1 в
+    // памяти процесса, до L2 дело не доходит, поэтому тест зелёный и на мёртвом Redis — про
+    // доступность L2 он не говорит ничего. Прямая проверка L2 —
+    // DashboardCacheTests.GetDashboard_WritesEntryToRedis_UnderConfiguredInstancePrefix.
     [Fact]
-    public async Task HybridCache_WhenRedisReachable_ServesSecondCallWithoutInvokingFactory()
+    public async Task HybridCache_SecondCall_IsServedFromL1_WithoutInvokingFactory()
     {
         // ARRANGE
         var cache = Services.GetRequiredService<HybridCache>();

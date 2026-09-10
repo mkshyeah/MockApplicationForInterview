@@ -33,7 +33,8 @@ try
     builder.Services
         .AddApiServices(builder.Configuration) 
         .AddInfrastructureServices(builder.Configuration)
-        .AddApplicationServices();
+        .AddApplicationServices()
+        .AddMessagingServices(builder.Configuration);
 
     builder.Host.UseDefaultServiceProvider((ctx, o) =>
     {
@@ -64,6 +65,18 @@ try
     app.MapHealthChecks("/health/live", new HealthCheckOptions
     {
         Predicate = check => check.Tags.Contains("live"),
+        ResultStatusCodes =
+        {
+            [HealthStatus.Healthy] = StatusCodes.Status200OK,
+            [HealthStatus.Degraded] = StatusCodes.Status200OK,
+            [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+        },
+        ResponseWriter = WriteHealthCheckResponse
+    });
+
+    app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    {
+        Predicate = check => check.Tags.Contains("ready"),
         ResultStatusCodes =
         {
             [HealthStatus.Healthy] = StatusCodes.Status200OK,

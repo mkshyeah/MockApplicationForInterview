@@ -20,6 +20,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected HttpClient Client { get; private set; } = null!;
     protected JsonSerializerOptions Json { get; private set; } = null!;
     protected IServiceProvider Services => _fixture.Factory.Services;
+    protected string RabbitMqConnectionString => _fixture.RabbitMqConnectionString;
 
     public IntegrationTestBase(IntegrationFixture fixture)
     {
