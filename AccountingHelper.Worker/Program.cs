@@ -63,6 +63,7 @@ try
     builder.Services.AddMessagingServices(configuration: builder.Configuration, x =>
     {
         x.AddConsumer<PingConsumer>();
+        x.AddConsumer<CacheInvalidationConsumer>();
     });
     
     builder.ConfigureContainer(new DefaultServiceProviderFactory(new ServiceProviderOptions
