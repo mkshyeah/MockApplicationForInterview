@@ -29,6 +29,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // address nothing answers on. Each connection string is set whole, because UseSetting
         // overwrites the value rather than merging parameters into it.
         builder.UseSetting("Redis:ConnectionString", _redisConnectionString);
+        builder.UseSetting("Cache:Dashboard", "01:00:00");
 
         // Redis:InstanceName is deliberately NOT overridden: it comes from the base
         // appsettings.json, and tests have to run against the same key scheme as production.
