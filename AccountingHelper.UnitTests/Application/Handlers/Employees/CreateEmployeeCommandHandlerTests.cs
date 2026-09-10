@@ -5,6 +5,7 @@ using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
 using AccountingHelper.UnitTests.Common;
 using FluentAssertions;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -20,6 +21,10 @@ public class CreateEmployeeCommandHandlerTests
     private readonly Mock<IPositionRepository> _positionRepositoryMock;
     private readonly Mock<ILeaveBalanceRepository> _leaveBalanceRepositoryMock;
     private readonly Mock<ILogger<CreateEmployeeCommandHandler>> _loggerMock;
+
+    // Nothing is ever verified on this mock. Publishing is transport behaviour, covered against
+    // a real broker in the integration suite; asserting it here would only restate the handler.
+    private readonly Mock<IPublishEndpoint> _publishEndpointMock;
     private readonly CreateEmployeeCommandHandler _handler;
 
     public CreateEmployeeCommandHandlerTests()
@@ -30,6 +35,7 @@ public class CreateEmployeeCommandHandlerTests
         _positionRepositoryMock = new Mock<IPositionRepository>();
         _leaveBalanceRepositoryMock = new Mock<ILeaveBalanceRepository>();
         _loggerMock = new Mock<ILogger<CreateEmployeeCommandHandler>>();
+        _publishEndpointMock = new Mock<IPublishEndpoint>();
 
         _unitOfWorkMock.Setup(u => u.Employees).Returns(_employeeRepositoryMock.Object);
         _unitOfWorkMock.Setup(u => u.Departments).Returns(_departmentRepositoryMock.Object);
@@ -38,7 +44,10 @@ public class CreateEmployeeCommandHandlerTests
         _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _handler = new CreateEmployeeCommandHandler(_unitOfWorkMock.Object, _loggerMock.Object);
+        _handler = new CreateEmployeeCommandHandler(
+            _unitOfWorkMock.Object,
+            _publishEndpointMock.Object,
+            _loggerMock.Object);
     }
 
     private static CreateEmployeeCommand ValidCommand(

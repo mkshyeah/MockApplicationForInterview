@@ -1,4 +1,5 @@
 using AccountingHelper.Contracts;
+using AccountingHelper.Contracts.Messaging;
 using MassTransit;
 
 namespace AccountingHelper.Worker.Consumers;

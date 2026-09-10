@@ -1,9 +1,12 @@
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
 using AccountingHelper.Application.Mapping;
+using AccountingHelper.Contracts;
+using AccountingHelper.Contracts.Messaging;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
+using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -12,13 +15,16 @@ namespace AccountingHelper.Application.Features.Employees.Commands.FireEmployee;
 public class FireEmployeeCommandHandler : IRequestHandler<FireEmployeeCommand, EmployeeResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<FireEmployeeCommandHandler> _logger;
 
     public FireEmployeeCommandHandler(
         IUnitOfWork unitOfWork,
+        IPublishEndpoint publishEndpoint,
         ILogger<FireEmployeeCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
+        _publishEndpoint = publishEndpoint;
         _logger = logger;
     }
     
@@ -42,6 +48,8 @@ public class FireEmployeeCommandHandler : IRequestHandler<FireEmployeeCommand, E
         
         await _unitOfWork.Employees.ApplyStatusAsync(employee,ct);
         await _unitOfWork.SaveChangesAsync(ct);
+
+        await _publishEndpoint.Publish(new EmployeeFired(employee.Id), ct);
         
         _logger.LogInformation("Employee {EmployeeId} was successfully fired. Associated active salary was closed.", request.Id);
 

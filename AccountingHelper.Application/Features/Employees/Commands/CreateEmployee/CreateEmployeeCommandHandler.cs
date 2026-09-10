@@ -1,9 +1,12 @@
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
 using AccountingHelper.Application.Mapping;
+using AccountingHelper.Contracts;
+using AccountingHelper.Contracts.Messaging;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
+using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -12,13 +15,16 @@ namespace AccountingHelper.Application.Features.Employees.Commands.CreateEmploye
 public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeCommand, EmployeeResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<CreateEmployeeCommandHandler> _logger;
 
     public CreateEmployeeCommandHandler(
         IUnitOfWork unitOfWork, 
+        IPublishEndpoint publishEndpoint,
         ILogger<CreateEmployeeCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
+        _publishEndpoint = publishEndpoint;
         _logger = logger;
     }
     
@@ -76,6 +82,8 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         
         _unitOfWork.Employees.Add(employee);
         await _unitOfWork.SaveChangesAsync(ct);
+
+        await _publishEndpoint.Publish(new EmployeeHired(employee.Id), ct);
         
         _logger.LogInformation("Employee {EmployeeId} was created.", employeeId);
 

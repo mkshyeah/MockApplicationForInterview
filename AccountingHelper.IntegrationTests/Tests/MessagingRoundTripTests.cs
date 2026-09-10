@@ -1,4 +1,5 @@
 using AccountingHelper.Contracts;
+using AccountingHelper.Contracts.Messaging;
 using AccountingHelper.IntegrationTests.Setup;
 using AccountingHelper.Worker.Consumers;
 using FluentAssertions;
