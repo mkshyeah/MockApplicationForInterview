@@ -550,6 +550,122 @@ namespace AccountingHelper.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.PayrollRunEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer")
+                        .HasColumnName("month");
+
+                    b.Property<int>("ProcessedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("processed_count");
+
+                    b.Property<int>("SkippedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("skipped_count");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payroll_runs");
+
+                    b.HasIndex("Year", "Month")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payroll_runs_year_month");
+
+                    b.ToTable("payroll_runs", (string)null);
+                });
+
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.PayslipEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal>("Deductions")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("deductions");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
+                    b.Property<decimal>("Gross")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("gross");
+
+                    b.Property<decimal>("Net")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("net");
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payroll_run_id");
+
+                    b.Property<decimal>("Tax")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("tax");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payslips");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_payslips_employee_id");
+
+                    b.HasIndex("PayrollRunId", "EmployeeId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payslips_payroll_run_id_employee_id");
+
+                    b.ToTable("payslips", (string)null);
+                });
+
             modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.PositionEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -781,6 +897,27 @@ namespace AccountingHelper.Infrastructure.Migrations
                     b.Navigation("Employee");
                 });
 
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.PayslipEntity", b =>
+                {
+                    b.HasOne("AccountingHelper.Infrastructure.Data.Entities.EmployeeEntity", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_payslips_employees_employee_id");
+
+                    b.HasOne("AccountingHelper.Infrastructure.Data.Entities.PayrollRunEntity", "PayrollRun")
+                        .WithMany("Payslips")
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_payslips_payroll_runs_payroll_run_id");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("PayrollRun");
+                });
+
             modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.SalaryEntity", b =>
                 {
                     b.HasOne("AccountingHelper.Infrastructure.Data.Entities.EmployeeEntity", "Employee")
@@ -801,6 +938,11 @@ namespace AccountingHelper.Infrastructure.Migrations
             modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.EmployeeEntity", b =>
                 {
                     b.Navigation("Salaries");
+                });
+
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.PayrollRunEntity", b =>
+                {
+                    b.Navigation("Payslips");
                 });
 
             modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.PositionEntity", b =>

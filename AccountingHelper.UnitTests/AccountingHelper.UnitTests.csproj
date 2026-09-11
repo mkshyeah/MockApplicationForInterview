@@ -24,10 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Infrastructure\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\AccountingHelper.Application\AccountingHelper.Application.csproj" />
     <ProjectReference Include="..\AccountingHelper.Domain\AccountingHelper.Domain.csproj" />
     <ProjectReference Include="..\AccountingHelper.Infrastructure\AccountingHelper.Infrastructure.csproj" />
