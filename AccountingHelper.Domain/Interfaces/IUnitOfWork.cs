@@ -8,5 +8,6 @@ public interface IUnitOfWork
     IPositionRepository Positions { get; }
     ILeaveRequestRepository LeaveRequests { get; }
     ILeaveBalanceRepository LeaveBalances { get; }
+    IPayrollRunRepository PayrollRuns { get; }
     Task SaveChangesAsync(CancellationToken ct);
 }

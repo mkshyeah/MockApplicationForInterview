@@ -1,5 +1,8 @@
+using AccountingHelper.Domain.Exceptions;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Infrastructure.Contexts;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace AccountingHelper.Infrastructure.UnitOfWork;
 
@@ -13,6 +16,7 @@ public class UnitOfWork : IUnitOfWork
     public IPositionRepository Positions { get; }
     public ILeaveRequestRepository LeaveRequests { get; }
     public ILeaveBalanceRepository LeaveBalances { get; }
+    public IPayrollRunRepository PayrollRuns { get; }
 
     public UnitOfWork(
         ApplicationDbContext dbContext,
@@ -21,7 +25,8 @@ public class UnitOfWork : IUnitOfWork
         IDepartmentRepository departments,
         IPositionRepository positions,
         ILeaveRequestRepository leaveRequests,
-        ILeaveBalanceRepository leaveBalances)
+        ILeaveBalanceRepository leaveBalances,
+        IPayrollRunRepository payrollRuns)
     {
         _dbContext = dbContext;
         Employees = employees;
@@ -30,8 +35,20 @@ public class UnitOfWork : IUnitOfWork
         Positions = positions;
         LeaveRequests = leaveRequests;
         LeaveBalances = leaveBalances;
+        PayrollRuns = payrollRuns;
     }
     
-    public async Task SaveChangesAsync(CancellationToken ct) 
-        => await _dbContext.SaveChangesAsync(ct);
+    public async Task SaveChangesAsync(CancellationToken ct)
+    {
+        try
+        {
+            await _dbContext.SaveChangesAsync(ct);
+        }
+        // 23505 is unique_violation. Translated here because this is the only layer allowed to know
+        // about Npgsql; what the violation means is for the caller to decide.
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" } postgres)
+        {
+            throw new UniqueConstraintViolationException(postgres.ConstraintName, ex);
+        }
+    }
 }
