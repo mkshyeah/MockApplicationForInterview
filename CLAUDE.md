@@ -37,7 +37,7 @@ Clean Architecture with five projects and two test projects:
 
 | Project | Role |
 |---|---|
-| `AccountingHelper.Domain` | Domain models, enums, repository interfaces, `IUnitOfWork` |
+| `AccountingHelper.Domain` | Domain models, enums, repository interfaces, `IUnitOfWork`, exceptions shared with Infrastructure |
 | `AccountingHelper.Application` | Service interfaces/implementations, DTOs, FluentValidation validators, exception types, Application-layer mappings |
 | `AccountingHelper.Infrastructure` | EF Core entities, `DbContext`, repository implementations, Infrastructure-layer mappings, migrations, MassTransit registration |
 | `AccountingHelper.Contracts` | Message contracts. References nothing — not even MassTransit |
@@ -133,6 +133,24 @@ The old reporting endpoints (`/count`, `/salaries`, `/taxes`) are deliberately l
 
 **No `Sleep` in messaging tests.** Wait on a condition with a timeout — `harness.Consumed.Any<T>(...)` or polling a request until a predicate holds. A delay after publishing is a flaky test with extra steps.
 
+**A payslip is a historical record, not a projection.** `Payslip` stores computed amounts — gross, tax, deductions, net — and never points at the salary they came from. Next month's raise must not rewrite last month's slip, so joining `Payslip` to `Salary` to "avoid duplication" would destroy exactly what the table is for. The same property is the foundation of the retro-pay work in the backlog: corrections are new rows, never edits to old ones. Its employee FK is `Restrict` for the same reason; the payroll-run FK is `Cascade`, because a payslip cannot exist without its run.
+
+**Idempotency is two unique indexes, not two `if`s.** `(year, month)` on `payroll_runs` and `(payroll_run_id, employee_id)` on `payslips` are the whole guarantee. `ExistsForPeriodAsync` in the create handler and the `Status == Completed` check in the run handler are fast paths for the common case — both are check-then-act, and two concurrent callers pass them together. What makes the money safe is that the second insert cannot physically land.
+
+That only works if the violation is translated rather than leaking: `UnitOfWork.SaveChangesAsync` catches `DbUpdateException` whose inner is `PostgresException { SqlState: "23505" }` and rethrows `UniqueConstraintViolationException`. That type lives in **Domain**, because Infrastructure and Application share nothing else — Npgsql must not become visible in Application, and Application's HTTP-shaped exceptions are not visible in Infrastructure.
+
+**What the caller does with that violation differs by entry point, and the difference matters.** In `CreatePayrollRunCommandHandler` it becomes a `ConflictException` — the client raced and deserves a 409 instead of a 500. In `RunPayrollCommandHandler` it is **swallowed and the message acknowledged**: a violation there means a concurrent delivery already did the work, so throwing would retry and eventually dead-letter a run that succeeded. At-least-once delivery makes "already done" a success, not a failure.
+
+**A bad row is skipped, not fatal.** An employee with no active salary — the hole phase 3 recorded, reachable whenever an import leaves an open salary on a fired employee or closes one without firing — increments `SkippedCount` and gets no payslip. The run still completes. A batch that dies on one row is a bad batch, and the counters are how the operator finds out.
+
+**Payroll and the dashboard count the same people.** `EmployeeStatuses.Employed` gates `GetPayrollEmployeeSnapshotsAsync` exactly as it gates headcount. Different populations would make the two reports disagree, and the ratio between payroll and headcount is the thing that makes either of them worth reading.
+
+**Payroll arithmetic is `SalaryCalculator`, twice removed from SQL.** `Convert(amount, type, Monthly)` gives gross, `CalculateTaxes(amount, type)` gives tax — the tax is computed from the *original* rate, not from the already-converted gross, because the scale knows about pay types. `Deductions` is a deliberate zero placeholder for this phase, and `Net` keeps the full `gross - tax - deductions` formula so it stays correct once something produces them. Every field rounds from its own exact value, so `Net` may differ from the printed `Gross - Tax` by a cent; that is the phase 3 rounding rule, not a defect.
+
+**A consumer is a transport adapter, exactly like a controller.** `PayrollRunConsumer` resolves the id from the message and calls `ISender.Send` — nothing else. Logic in a class that can only be reached from RabbitMQ cannot be invoked any other way and cannot be unit-tested without a harness. Note what this implies about processes: `ISender.Send` is an in-process call, so `RunPayrollCommandHandler` — though it lives in the Application assembly that both hosts load — executes inside the **Worker**, while `CreatePayrollRunCommandHandler` executes inside the **API**. Assembly is not process; who calls `Send` decides where the work lands, and that is the whole point of the split.
+
+**Integration tests for the run dispatch the command directly.** `PayrollRunExecutionTests` resolves `ISender` from the test host instead of standing up a consumer: the consumer is three lines, and that the broker delivers is already proven by `MessagingRoundTripTests`. The idempotency test rewinds the run's status to `Processing` before the second pass on purpose — without that it would return at the fast path, the unique index would never fire, and the test would pass while proving nothing about at-least-once.
+
 **Queues are shared state, and are not cleaned between tests yet.** `IntegrationFixture.ResetAsync` truncates the database and drops cache keys, but does not purge queues. That is safe only because the single consumer merely logs, and because `MessagingRoundTripTests` filters on a unique `PingId` — a leftover message from an earlier test physically cannot be mistaken for this test's own. Both halves of that are load-bearing. The first consumer that changes state, or any relaxation of that filter, needs a purge in `ResetAsync`; a per-run vhost isolates run from run, not test from test, so it is insurance against a shared broker rather than a substitute for purging.
 
 ## Configuration
@@ -145,6 +163,8 @@ The old reporting endpoints (`/count`, `/salaries`, `/taxes`) are deliberately l
 - `Microsoft.Extensions.Logging.Abstractions` is pinned to **9.0.19** in Application: `Caching.Hybrid` requires `>= 9.0.10`, and an explicit 8.x reference downgrades it into an `NU1605` error.
 - EF Core is configured with `UseNpgsql` + `UseSnakeCaseNamingConvention()` (all column and table names are snake_case in the DB).
 - `gen_random_uuid()` is used as the default value for `Id` columns in migrations — PostgreSQL-specific.
+- Money columns carry `HasPrecision(18, 2)`. Without it Npgsql emits an unconstrained `numeric`, which works but leaves precision up to whatever the code happened to store — unacceptable for a payslip, which is a document.
+- Detached domain models cannot be updated by assignment: `GetByIdAsync` returns a model mapped off the entity, so EF knows nothing about it. Repositories expose narrow tracked-update methods instead (`ApplyStatusAsync`, `CloseAsync`, `ApplyDecisionAsync`, `ApplyProgressAsync`); no `State = Modified` anywhere. Forgetting a field in one of those is silent — the write simply does not happen.
 - `EnableRetryOnFailure` (5 retries, 5 s delay) handles transient startup connection errors.
 - The cache is **Redis 7** (`redis:7-alpine`), no volume — cache contents are ephemeral by design. The password is applied through `command: redis-server --requirepass ...`; the official image ignores a `REDIS_PASSWORD` env var (that is a bitnami convention). Persistence is switched off explicitly (`--save "" --appendonly no`).
 - The compose healthcheck is `redis-cli ping | grep -q PONG`, not a bare `redis-cli ping`: `redis-cli` exits 0 even when `AUTH` fails, so only checking the exit code would report healthy on a broken password. `REDISCLI_AUTH` supplies the password so it never appears in the healthcheck command.
@@ -172,6 +192,9 @@ The old reporting endpoints (`/count`, `/salaries`, `/taxes`) are deliberately l
 | `GET` | `/v1/reporting/dashboard` | Payroll, tax, headcount per department, average salary per grade |
 | `GET` | `/v1/departments` | Department reference list (flat, no pagination) |
 | `GET` | `/v1/positions` | Position reference list (flat, no pagination) |
+| `POST` | `/v1/payroll-runs` | Request a payroll run — `202 Accepted` + `Location` |
+| `GET` | `/v1/payroll-runs/{id}` | Run status, counters and timestamps |
+| `GET` | `/v1/payroll-runs/{id}/payslips` | Payslips of a run (flat, no pagination) |
 
 ## API conventions
 
@@ -179,4 +202,5 @@ The old reporting endpoints (`/count`, `/salaries`, `/taxes`) are deliberately l
 - URLs are forced lowercase via `RouteOptions.LowercaseUrls`. Use kebab-case in route attribute strings (e.g. `on-vacation`, `off-vacation`) — the middleware only lowercases, it does not insert hyphens.
 - Enums are serialized as strings via `JsonStringEnumConverter`.
 - Pagination uses `offset`/`limit` (not `page`/`pageSize`) throughout all layers. Responses are wrapped in `PagedResponse<T>` with `total`, `returned`, `offset`, `limit`.
-- Validation is done via FluentValidation injected with `[FromServices] IValidator<T>`. Failures are thrown as `ValidationException` and handled by `GlobalExceptionHandler` as `ValidationProblemDetails`.
+- Validation runs in a MediatR pipeline behaviour, not in the controllers — no action injects `IValidator<T>`. Validators are picked up by `AddValidatorsFromAssembly`, failures are thrown as `ValidationException` and rendered by `GlobalExceptionHandler` as `ValidationProblemDetails`. A rule spanning two fields (`RuleFor(x => x)`) needs an explicit `WithName`, or the error key becomes the command's type name.
+- Work that outlives a request answers `202 Accepted` with a `Location` pointing at a status resource, never `201`: the row exists, the work does not. The client polls that resource until the status settles.
