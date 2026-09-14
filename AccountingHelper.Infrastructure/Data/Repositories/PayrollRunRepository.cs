@@ -31,4 +31,19 @@ public class PayrollRunRepository : IPayrollRunRepository
     }
 
     public void Add(PayrollRun payrollRun) => _dbContext.Add(payrollRun.ToEntity());
+    
+    public async Task ApplyProgressAsync(PayrollRun model, CancellationToken ct)
+    {
+        var entity = await _dbContext.PayrollRuns.
+            FirstOrDefaultAsync(x => x.Id == model.Id, ct);
+
+        if (entity is null)
+            throw new InvalidOperationException($"Payroll run '{model.Id}' was not found for update.");
+        
+        entity.Status = model.Status;
+        entity.ProcessedCount = model.ProcessedCount;
+        entity.SkippedCount = model.SkippedCount;
+        entity.StartedAt = model.StartedAt;
+        entity.CompletedAt = model.CompletedAt;
+    }
 }

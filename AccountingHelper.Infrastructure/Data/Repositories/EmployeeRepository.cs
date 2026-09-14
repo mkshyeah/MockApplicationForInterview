@@ -6,6 +6,7 @@ using AccountingHelper.Infrastructure.Contexts;
 using AccountingHelper.Infrastructure.Data.Entities;
 using AccountingHelper.Infrastructure.Mapping;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace AccountingHelper.Infrastructure.Data.Repositories;
 
@@ -117,5 +118,25 @@ public class EmployeeRepository : IEmployeeRepository
          .GroupBy(e => new { e.DepartmentId, e.Department!.Name })
          .Select(g => new DepartmentHeadcount(g.Key.DepartmentId, g.Key.Name, g.Count()))
          .ToListAsync(ct);
+   }
+
+   public async Task<IReadOnlyList<PayrollEmployeeSnapshot>> GetPayrollEmployeeSnapshotsAsync(CancellationToken ct)
+   {
+      var rows = await _dbContext.Employees
+         .AsNoTracking()
+         .Where(e => EmployeeStatuses.Employed.Contains(e.Status))
+         .Select(e => new
+         {
+            e.Id,
+            ActiveSalary = e.Salaries
+               .Where(s => s.EndDate == null)
+               .Select(s => new { s.Amount, s.Type })
+               .FirstOrDefault()
+         })
+         .ToListAsync(ct);
+
+      return rows
+         .Select(r => new PayrollEmployeeSnapshot(r.Id, r.ActiveSalary?.Amount, r.ActiveSalary?.Type))
+         .ToList();
    }
 }
