@@ -94,6 +94,44 @@ public class PayrollRunExecutionTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetPayslips_AfterRun_ReturnsOneSlipPerPaidEmployee()
+    {
+        // ARRANGE
+        var departmentId = await SeedDepartmentAsync("IT");
+        var positionId = await SeedPositionAsync("Junior Developer", EmployeeGrade.Junior);
+        var employee = await CreateEmployeeAsync(departmentId, positionId, salary: 1000m);
+
+        var runId = await CreateRunAsync();
+        await RunPayrollAsync(runId);
+
+        // ACT
+        var resp = await Client.GetAsync($"v1/payroll-runs/{runId}/payslips");
+
+        // ASSERT
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var payslips = await resp.Content.ReadFromJsonAsync<List<PayslipResponse>>(Json);
+        var payslip = payslips.Should().ContainSingle().Subject;
+
+        payslip.EmployeeId.Should().Be(employee.Id);
+        payslip.Gross.Should().Be(1_000.00m);
+        payslip.Tax.Should().Be(100.00m);
+        payslip.Net.Should().Be(900.00m);
+    }
+
+    [Fact]
+    public async Task GetPayslips_WhenRunDoesNotExist_Returns404()
+    {
+        // ACT
+        var resp = await Client.GetAsync($"v1/payroll-runs/{Guid.NewGuid()}/payslips");
+
+        // ASSERT
+        // 404 rather than an empty list: "this run has no payslips" and "there is no such run" are
+        // answers to different questions, and a caller polling a typo deserves to be told.
+        resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task RunPayroll_WhenTheSameRunIsProcessedTwice_DoesNotDoublePayslips()
     {
         // ARRANGE

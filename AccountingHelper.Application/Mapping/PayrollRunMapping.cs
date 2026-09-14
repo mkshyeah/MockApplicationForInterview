@@ -12,6 +12,10 @@ public static class PayrollRunMapping
         Id = model.Id,
         Year = model.Year,
         Month = model.Month,
+        ProcessedCount = model.ProcessedCount,
+        SkippedCount = model.SkippedCount,
+        StartedAt = model.StartedAt,
+        CompletedAt = model.CompletedAt,
         Status = model.Status
     };
 

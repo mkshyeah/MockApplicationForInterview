@@ -1,6 +1,7 @@
 using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.Payroll.Queries.GetPayrollRun;
+using AccountingHelper.Application.Features.Payroll.Queries.GetPayslips;
 using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
 using MediatR;
@@ -35,7 +36,6 @@ public class PayrollRunsController : ControllerBase
         return AcceptedAtAction(nameof(GetPayrollRun), new { id = payrollRun.Id }, payrollRun);
     }
     
-    [HttpGet]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(PayrollRunResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -43,5 +43,15 @@ public class PayrollRunsController : ControllerBase
     {
         var payroll = await _sender.Send(new GetPayrollRunQuery(id), ct);
         return Ok(payroll);   
+    }
+
+    [HttpGet("{id:guid}/payslips")]
+    [ProducesResponseType(typeof(IReadOnlyList<PayslipResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<PayslipResponse>>> GetPayrollRunPayslips(Guid id,
+        CancellationToken ct = default)
+    {
+        var payslips = await _sender.Send(new GetPayslipsQuery(id), ct);
+        return Ok(payslips);  
     }
 }
