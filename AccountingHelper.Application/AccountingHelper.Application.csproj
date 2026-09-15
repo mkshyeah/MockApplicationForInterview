@@ -12,15 +12,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="FluentValidation" Version="12.1.1" />
-        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-        <PackageReference Include="MassTransit" Version="8.5.10" />
-        <PackageReference Include="MediatR" Version="13.1.0" />
-        <!-- 9.0.19, not 8.x: Caching.Hybrid requires >= 9.0.10, and an explicit 8.x reference
-             here downgrades it (NU1605, which is an error in this solution). 9.0.19 matches the
-             version the API already pulls in transitively through Caching.StackExchangeRedis. -->
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.19" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.10.0" />
+        <PackageReference Include="FluentValidation" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+        <PackageReference Include="MassTransit" />
+        <PackageReference Include="MediatR" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     </ItemGroup>
 
     <ItemGroup>

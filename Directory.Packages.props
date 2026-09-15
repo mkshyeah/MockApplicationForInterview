@@ -1,0 +1,87 @@
+<Project>
+
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    </PropertyGroup>
+
+    <!-- Web / API -->
+    <ItemGroup>
+        <PackageVersion Include="Asp.Versioning.Mvc" Version="8.1.1" />
+        <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
+        <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    </ItemGroup>
+
+    <!-- Application -->
+    <ItemGroup>
+        <PackageVersion Include="FluentValidation" Version="12.1.1" />
+        <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+        <PackageVersion Include="MediatR" Version="13.1.0" />
+    </ItemGroup>
+
+    <!-- Persistence -->
+    <ItemGroup>
+        <PackageVersion Include="EFCore.NamingConventions" Version="8.0.3" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.28" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.28" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.28" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.28" />
+        <PackageVersion Include="Npgsql" Version="8.0.6" />
+        <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    </ItemGroup>
+
+    <!-- Messaging -->
+    <ItemGroup>
+        <PackageVersion Include="MassTransit" Version="8.5.10" />
+        <!-- 8.4.1 is the last release whose net8.0 target depends on EF Core 8; 8.5.x wants
+             Relational >= 9.0.1, which EFCore.NamingConventions 8.0.3 caps below 9.0.0. -->
+        <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.4.1" />
+        <PackageVersion Include="MassTransit.RabbitMQ" Version="8.5.10" />
+    </ItemGroup>
+
+    <!-- Caching, hosting, options -->
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="9.10.0" />
+        <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.19" />
+        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.19" />
+        <!-- 9.0.19, not 8.x: Caching.Hybrid requires >= 9.0.10, and an 8.x reference downgrades
+             it into an NU1605 error. Central management makes that one decision, once. -->
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.19" />
+        <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.19" />
+    </ItemGroup>
+
+    <!-- Health checks -->
+    <ItemGroup>
+        <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+        <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.28" />
+    </ItemGroup>
+
+    <!-- Logging -->
+    <ItemGroup>
+        <PackageVersion Include="Serilog.AspNetCore" Version="8.0.3" />
+        <PackageVersion Include="Serilog.Expressions" Version="5.0.0" />
+        <PackageVersion Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+        <PackageVersion Include="Serilog.Formatting.Compact" Version="3.0.0" />
+        <PackageVersion Include="Serilog.Settings.Configuration" Version="8.0.4" />
+        <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+        <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    </ItemGroup>
+
+    <!-- Tests -->
+    <ItemGroup>
+        <PackageVersion Include="coverlet.collector" Version="6.0.0" />
+        <PackageVersion Include="FluentAssertions" Version="8.10.0" />
+        <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.29" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+        <PackageVersion Include="Moq" Version="4.20.72" />
+        <PackageVersion Include="Respawn" Version="7.0.0" />
+        <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
+        <PackageVersion Include="Testcontainers.RabbitMq" Version="4.15.0" />
+        <PackageVersion Include="Testcontainers.Redis" Version="4.15.0" />
+        <PackageVersion Include="xunit" Version="2.9.3" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    </ItemGroup>
+
+</Project>
