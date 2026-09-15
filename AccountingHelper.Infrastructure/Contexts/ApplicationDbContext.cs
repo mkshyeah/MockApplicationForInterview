@@ -1,4 +1,5 @@
 ﻿using AccountingHelper.Infrastructure.Data.Entities;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingHelper.Infrastructure.Contexts;
@@ -19,6 +20,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
         
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }

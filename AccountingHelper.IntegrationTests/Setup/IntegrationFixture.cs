@@ -48,7 +48,17 @@ public class IntegrationFixture : IAsyncLifetime
         {
             DbAdapter = DbAdapter.Postgres,
             SchemasToInclude = new[] { "public" },
-            TablesToIgnore = new Respawn.Graph.Table[] { "__EFMigrationsHistory" }
+            // The outbox tables belong to MassTransit, not to the application, and its delivery
+            // service writes to them on a timer. Truncating them while it holds row locks is a
+            // deadlock between two writers — Postgres kills one, and the victim is usually
+            // Respawn, which fails whichever test happened to start at that moment.
+            TablesToIgnore = new Respawn.Graph.Table[]
+            {
+                "__EFMigrationsHistory",
+                "outbox_message",
+                "outbox_state",
+                "inbox_state"
+            }
         });
     }
 
@@ -68,6 +78,12 @@ public class IntegrationFixture : IAsyncLifetime
             await cache.RemoveAsync(key);
         }
     }
+    
+    // docker pause, not stop: pausing freezes the processes but keeps the container and its port                                                                                                                
+    // mapping, so the same connection string works again after resuming. Stop/Start would hand out                                                                                                              
+    // a different host port, and every host built with the old string would be pointing at nothing.
+    public Task PauseBrokerAsync() => _rabbitMq.PauseAsync();
+    public Task ResumeBrokerAsync() => _rabbitMq.UnpauseAsync();
 
     public async Task DisposeAsync()
     {

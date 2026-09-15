@@ -1,3 +1,4 @@
+using AccountingHelper.Infrastructure.Contexts;
 using AccountingHelper.Infrastructure.Messaging;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
@@ -35,6 +36,19 @@ public static class MessagingServiceCollectionExtensions
             });
             
             configureConsumers?.Invoke(x);
+            
+            x.AddEntityFrameworkOutbox<ApplicationDbContext>(o =>
+            {
+                o.UsePostgres();
+                // The half that matters here: it makes the scoped IPublishEndpoint write into the outbox
+                // table inside the caller's transaction instead of talking to RabbitMQ.
+                o.UseBusOutbox();
+                
+                // The delivery service polls; the default is tuned for production, and every test that waits
+                // for an event would pay it. One second keeps the tests honest and costs nothing on a table 
+                // that is empty almost always.
+                o.QueryDelay = TimeSpan.FromSeconds(1);
+            });
             
             x.UsingRabbitMq((context, cfg) =>
             {

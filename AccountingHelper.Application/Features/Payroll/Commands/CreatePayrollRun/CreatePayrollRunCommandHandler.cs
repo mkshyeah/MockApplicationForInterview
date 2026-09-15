@@ -45,6 +45,7 @@ public class CreatePayrollRunCommandHandler : IRequestHandler<CreatePayrollRunCo
 
         try
         {
+            await _publishEndpoint.Publish(new PayrollRunRequested(payrollRun.Id, payrollRun.Year, payrollRun.Month), ct);
             await _unitOfWork.SaveChangesAsync(ct);
         }
         // The check above is a courtesy, not a guarantee: two concurrent requests both pass it,
@@ -60,9 +61,6 @@ public class CreatePayrollRunCommandHandler : IRequestHandler<CreatePayrollRunCo
 
             throw new ConflictException($"Payroll run for {request.Year}-{request.Month:00} already exists.");
         }
-
-
-        await _publishEndpoint.Publish(new PayrollRunRequested(payrollRun.Id, payrollRun.Year, payrollRun.Month), ct);
 
         return payrollRun.ToResponse();
     }

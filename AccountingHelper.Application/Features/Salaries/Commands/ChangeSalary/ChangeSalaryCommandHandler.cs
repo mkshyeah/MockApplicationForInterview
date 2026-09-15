@@ -55,9 +55,11 @@ public class ChangeSalaryCommandHandler : IRequestHandler<ChangeSalaryCommand, S
         };
         
         _unitOfWork.Salaries.Add(salary);
+        
+        await _publishEndpoint.Publish(new SalaryChanged(employee.Id, salary.Id),ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
-        await _publishEndpoint.Publish(new SalaryChanged(employee.Id, salary.Id),ct);
+        
         
         _logger.LogInformation(
             "Salary updated for employee {EmployeeId}. Old: {OldAmount} ({OldType}), New: {NewAmount} ({NewType}).",

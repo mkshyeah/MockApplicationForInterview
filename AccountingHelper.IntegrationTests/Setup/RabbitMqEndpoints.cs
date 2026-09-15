@@ -1,6 +1,6 @@
 namespace AccountingHelper.IntegrationTests.Setup;
 
-public class RabbitMqEndpoints
+public static class RabbitMqEndpoints
 {
-    public const string Dead = "ampq://guest:guest@127.0.0.1:1/";
+    public const string Dead = "amqp://guest:guest@127.0.0.1:1/";
 }

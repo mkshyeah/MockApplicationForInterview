@@ -99,6 +99,8 @@ public class RunPayrollCommandHandler : IRequestHandler<RunPayrollCommand>
 
         try
         {
+            await _publishEndpoint.Publish(
+                new PayrollRunCompleted(run.Id, run.ProcessedCount, run.SkippedCount), ct);
             await _unitOfWork.SaveChangesAsync(ct);
         }
         catch (UniqueConstraintViolationException ex)
@@ -108,9 +110,6 @@ public class RunPayrollCommandHandler : IRequestHandler<RunPayrollCommand>
             _logger.LogInformation(ex, "Payroll run {PayrollRunId} was already processed concurrently.", run.Id);                                                                                            
             return;
         }
-
-        await _publishEndpoint.Publish(
-            new PayrollRunCompleted(run.Id, run.ProcessedCount, run.SkippedCount), ct);
     }
 
     private static decimal Round(decimal value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);

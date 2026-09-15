@@ -7,7 +7,7 @@ namespace AccountingHelper.IntegrationTests.Setup;
 
 public class CacheInvalidationHost : IAsyncDisposable
 {
-    private ServiceProvider _provider;
+    private readonly ServiceProvider _provider;
     private readonly IBusControl _bus;
 
     private CacheInvalidationHost(ServiceProvider provider, IBusControl bus)
