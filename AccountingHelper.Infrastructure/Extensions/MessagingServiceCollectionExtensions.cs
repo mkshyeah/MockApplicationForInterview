@@ -60,9 +60,13 @@ public static class MessagingServiceCollectionExtensions
                 // service takes the next batch (MessageDeliveryLimit) without sleeping. The default is
                 // tens of seconds, which every test waiting for an event would pay. An idle cycle is not
                 // free either — it locks a row in OutboxState, so replicas at this delay contend on one
-                // hot row. Lowering it here lowers it for production too: see the backlog entry on
-                // moving it into configuration.
+                // hot row. Hence configuration rather than a literal: production keeps a calm interval
+                // and the test factory shortens it, without either borrowing the other's value.
                 o.QueryDelay = outbox.QueryDelay;
+                
+                // The consumer-side inbox is deliberately not enabled — idempotency lives in the unique
+                // indexes — so this service spends every cycle cleaning a table that is always empty.
+                o.DisableInboxCleanupService();
             });
             
             // Per-endpoint rather than bus-level: the consumer outbox will need its own filter on the same

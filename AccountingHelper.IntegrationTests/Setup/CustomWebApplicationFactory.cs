@@ -46,6 +46,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("RabbitMq:VirtualHost", "/");
         builder.UseSetting("RabbitMq:UserName", Uri.UnescapeDataString(credentials[0]));
         builder.UseSetting("RabbitMq:Password", Uri.UnescapeDataString(credentials[1]));
+        builder.UseSetting("RabbitMq:Outbox:QueryDelay", "00:00:01");
         // Same policy shape as production — five attempts, two of them immediate — at a speed a test
         // suite can afford. Overriding the shape instead of the timings would leave the real one untested.
         builder.UseSetting("RabbitMq:Retry:Intervals:0", "00:00:00");
