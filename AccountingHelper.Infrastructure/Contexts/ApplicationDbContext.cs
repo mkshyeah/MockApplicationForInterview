@@ -1,4 +1,5 @@
 ﻿using AccountingHelper.Infrastructure.Data.Entities;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingHelper.Infrastructure.Contexts;
@@ -12,10 +13,17 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     
     public DbSet<LeaveRequestEntity> LeaveRequests => Set<LeaveRequestEntity>();
     public DbSet<LeaveBalanceEntity> LeaveBalances => Set<LeaveBalanceEntity>();
+    
+    public DbSet<PayrollRunEntity> PayrollRuns => Set<PayrollRunEntity>();
+    public DbSet<PayslipEntity> Payslips => Set<PayslipEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
         
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }

@@ -4,14 +4,14 @@ namespace AccountingHelper.Application.DTOs.Responses;
 
 public class LeaveRequestResponse
 {
-    public Guid Id { get; set; }
-    public Guid EmployeeId { get; set; }
-    public LeaveType LeaveType { get; set; }
-    public DateOnly StartDate { get; set; }
-    public DateOnly EndDate { get; set; }
-    public LeaveStatus Status { get; set; }
-    public DateTime RequestedAt { get; set; }
-    public int DurationInDays { get; set; }
-    public DateTime? DecidedAt { get; set; }
-    public Guid? DecidedBy { get; set; }
+    public Guid Id { get; init; }
+    public Guid EmployeeId { get; init; }
+    public LeaveType LeaveType { get; init; }
+    public DateOnly StartDate { get; init; }
+    public DateOnly EndDate { get; init; }
+    public LeaveStatus Status { get; init; }
+    public DateTime RequestedAt { get; init; }
+    public int DurationInDays { get; init; }
+    public DateTime? DecidedAt { get; init; }
+    public Guid? DecidedBy { get; init; }
 }

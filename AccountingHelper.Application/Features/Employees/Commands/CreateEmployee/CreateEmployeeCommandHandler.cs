@@ -81,9 +81,9 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         }
         
         _unitOfWork.Employees.Add(employee);
-        await _unitOfWork.SaveChangesAsync(ct);
-
+        
         await _publishEndpoint.Publish(new EmployeeHired(employee.Id), ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         
         _logger.LogInformation("Employee {EmployeeId} was created.", employeeId);
 

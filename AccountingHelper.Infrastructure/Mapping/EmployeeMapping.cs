@@ -15,7 +15,7 @@ public static class EmployeeMapping
         DepartmentId = entity.DepartmentId,
         Position = entity.Position?.ToModel(),
         PositionId = entity.PositionId,
-        Salaries = entity.Salaries.Select(e => e.ToModel()).ToList() ?? [],
+        Salaries = entity.Salaries.Select(e => e.ToModel()).ToList(),
         HireDate = entity.HireDate,
         TerminationDate = entity.TerminationDate,
         Status =  entity.Status

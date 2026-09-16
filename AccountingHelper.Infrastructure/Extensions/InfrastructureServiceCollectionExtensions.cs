@@ -39,6 +39,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IPositionRepository, PositionRepository>();
         services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
         services.AddScoped<ILeaveBalanceRepository, LeaveBalanceRepository>();
+        services.AddScoped<IPayrollRunRepository, PayrollRunRepository>();
+        services.AddScoped<IPayslipRepository, PayslipRepository>();
         
         return services;
     }

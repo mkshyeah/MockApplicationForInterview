@@ -9,4 +9,7 @@ public sealed class RabbitMqSettings
     public string VirtualHost { get; set; } = "/";
     public string UserName { get; set; } = null!;
     public string Password { get; set; } = null!;
+
+    public RetrySettings Retry { get; set; } = new();
+    public OutboxSettings Outbox { get; set; } = new();
 }

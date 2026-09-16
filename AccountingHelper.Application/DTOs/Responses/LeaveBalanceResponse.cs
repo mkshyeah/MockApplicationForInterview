@@ -4,8 +4,8 @@ namespace AccountingHelper.Application.DTOs.Responses;
 
 public class LeaveBalanceResponse
 {
-    public Guid Id { get; set; }
-    public Guid EmployeeId { get; set; }
-    public LeaveType LeaveType { get; set; }
-    public int RemainingDays { get; set; }
+    public Guid Id { get; init; }
+    public Guid EmployeeId { get; init; }
+    public LeaveType LeaveType { get; init; }
+    public int RemainingDays { get; init; }
 }

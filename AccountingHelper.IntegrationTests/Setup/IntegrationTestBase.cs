@@ -21,6 +21,9 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected JsonSerializerOptions Json { get; private set; } = null!;
     protected IServiceProvider Services => _fixture.Factory.Services;
     protected string RabbitMqConnectionString => _fixture.RabbitMqConnectionString;
+    
+    protected Task PauseBrokerAsync() => _fixture.PauseBrokerAsync();
+    protected Task ResumeBrokerAsync() => _fixture.ResumeBrokerAsync();
 
     public IntegrationTestBase(IntegrationFixture fixture)
     {

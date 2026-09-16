@@ -1,8 +1,9 @@
+using AccountingHelper.Domain.Exceptions;
 using FluentValidation.Results;
 
 namespace AccountingHelper.Application.Exceptions;
 
-public class AccountingHelperException : Exception
+public class AccountingHelperException : Exception, IPermanentFailure
 {
     public int StatusCode { get; }
     public string ErrorType { get; }
