@@ -76,12 +76,7 @@ public static class MessagingServiceCollectionExtensions
             {
                 var settings = context.GetRequiredService<IOptions<RabbitMqSettings>>().Value;
                 
-                cfg.UseMessageRetry(r =>
-                {
-                    r.Intervals(settings.Retry.Intervals);
-                    
-                    r.Ignore<Exception>(ex => ex is IPermanentFailure);
-                });
+                cfg.UseMessageRetry(r => RetryPolicy.Configure(r, settings.Retry.Intervals));
             });
             
             x.UsingRabbitMq((context, cfg) =>
