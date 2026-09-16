@@ -64,6 +64,7 @@ try
     {
         x.AddConsumer<PingConsumer>();
         x.AddConsumer<CacheInvalidationConsumer>();
+        x.AddConsumer<PayrollRunConsumer>();
     });
     
     builder.ConfigureContainer(new DefaultServiceProviderFactory(new ServiceProviderOptions
