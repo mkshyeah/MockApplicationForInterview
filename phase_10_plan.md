@@ -60,7 +60,17 @@
 ## Блок 4 — Экспорт + метрики
 - **Цель:** локальный бэкенд, где видно waterfall трейса; RED-метрики на эндпоинты и consumer'ы.
 - **Как думать:** OTLP-exporter → Jaeger/Tempo, либо `.NET Aspire dashboard` одной командой.
-- *Google:* `OTLP exporter Jaeger`, `.NET Aspire dashboard standalone`, `RED metrics OpenTelemetry`.
+- **Первая метрика — глубина `*_error`-очередей.** Долг из фазы 4: там сознательно отказались от
+  delayed redelivery, и error-очередь стала единственным местом, где оседают сбои. Наблюдения за
+  ней нет никакого — сообщение уходит туда молча, и узнать об этом можно только заглянув в
+  management UI. Это ровно тот тихий отказ, которого фаза 4 избегала в других местах.
+  В health checks это класть **нельзя**: полная error-очередь не значит «не шлите трафик», вывод
+  инстанса из ротации проблему не решает. Это метрика, а не состояние здоровья.
+  Источник: management API, `GET /api/queues/%2F/{queue}` → поле `messages` (`%2F` — vhost `/`).
+  Алерт — на любое ненулевое значение: одно сообщение в error-очереди уже означает потерянную
+  работу. TTL на такие очереди не ставить никогда — это удаление улик.
+- *Google:* `OTLP exporter Jaeger`, `.NET Aspire dashboard standalone`, `RED metrics OpenTelemetry`,
+  `RabbitMQ management API queue depth`, `MassTransit error queue monitoring`.
 
 ## Блок 5 — Логи ↔ трейсы
 - **Цель:** из лога прыгать в trace и обратно — связать с уже существующим correlation-id (Фаза 0).
