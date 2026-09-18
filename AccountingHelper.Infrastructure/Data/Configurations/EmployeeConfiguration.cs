@@ -18,6 +18,11 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<EmployeeEntity>
         builder.Property(e => e.LastName).IsRequired().HasMaxLength(100);
         builder.Property(e => e.Email).IsRequired().HasMaxLength(200);
 
+        // The ExistsByEmailAsync check in the create handler is a fast path, not the guarantee:
+        // two concurrent creates pass it together, and a bulk import passes it for every row of a
+        // file it has already imported. Only the second insert failing here makes that safe.
+        builder.HasIndex(e => e.Email).IsUnique();
+
         builder.Property(e => e.Status)
             .HasConversion<string>();
 
