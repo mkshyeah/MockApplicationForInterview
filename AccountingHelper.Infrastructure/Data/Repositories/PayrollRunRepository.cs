@@ -38,7 +38,7 @@ public class PayrollRunRepository : IPayrollRunRepository
             FirstOrDefaultAsync(x => x.Id == model.Id, ct);
 
         if (entity is null)
-            throw new InvalidOperationException($"Payroll run '{model.Id}' was not found for update.");
+            throw new InvalidOperationException($"PayrollRun '{model.Id}' was not found for update.");
         
         entity.Status = model.Status;
         entity.ProcessedCount = model.ProcessedCount;
