@@ -139,3 +139,7 @@ _to_delete/
 
 # Local Claude Code instructions (personal, not shared)
 CLAUDE.local.md
+
+# Personal documents that happen to live in the working directory
+Resume/
+hh_kz_resume.md
