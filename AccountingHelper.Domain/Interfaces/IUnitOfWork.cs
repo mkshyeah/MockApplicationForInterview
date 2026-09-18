@@ -10,5 +10,6 @@ public interface IUnitOfWork
     ILeaveBalanceRepository LeaveBalances { get; }
     IPayrollRunRepository PayrollRuns { get; }
     IPayslipRepository Payslips { get; }
+    IImportJobRepository ImportJobs { get; }
     Task SaveChangesAsync(CancellationToken ct);
 }

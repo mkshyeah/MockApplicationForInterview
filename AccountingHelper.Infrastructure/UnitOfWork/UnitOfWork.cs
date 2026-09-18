@@ -18,6 +18,7 @@ public class UnitOfWork : IUnitOfWork
     public ILeaveBalanceRepository LeaveBalances { get; }
     public IPayrollRunRepository PayrollRuns { get; }
     public IPayslipRepository Payslips { get; }
+    public IImportJobRepository ImportJobs { get; }
 
     public UnitOfWork(
         ApplicationDbContext dbContext,
@@ -28,7 +29,8 @@ public class UnitOfWork : IUnitOfWork
         ILeaveRequestRepository leaveRequests,
         ILeaveBalanceRepository leaveBalances,
         IPayrollRunRepository payrollRuns,
-        IPayslipRepository payslips)
+        IPayslipRepository payslips,
+        IImportJobRepository importJobs)
     {
         _dbContext = dbContext;
         Employees = employees;
@@ -39,6 +41,7 @@ public class UnitOfWork : IUnitOfWork
         LeaveBalances = leaveBalances;
         PayrollRuns = payrollRuns;
         Payslips = payslips;
+        ImportJobs = importJobs;
     }
     
     public async Task SaveChangesAsync(CancellationToken ct)
