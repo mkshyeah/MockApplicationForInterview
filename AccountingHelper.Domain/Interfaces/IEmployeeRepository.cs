@@ -16,6 +16,9 @@ public interface IEmployeeRepository
         CancellationToken ct);
     Task<int> CountAsync(CancellationToken ct);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken ct);
+    // Batch form of ExistsByEmailAsync for the import: one query per batch instead of one per row.
+    // Emails are compared as given, so callers normalize first.
+    Task<IReadOnlySet<string>> GetExistingEmailsAsync(IReadOnlyCollection<string> emails, CancellationToken ct);
     
     Task<EmployeeStatus?> GetStatusAsync(Guid employeeId, CancellationToken ct);
     void Add(Employee model);

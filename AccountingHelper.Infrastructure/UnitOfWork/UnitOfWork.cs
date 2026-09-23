@@ -57,4 +57,6 @@ public class UnitOfWork : IUnitOfWork
             throw new UniqueConstraintViolationException(postgres.ConstraintName, ex);
         }
     }
+
+    public void ClearTracking() => _dbContext.ChangeTracker.Clear();
 }
