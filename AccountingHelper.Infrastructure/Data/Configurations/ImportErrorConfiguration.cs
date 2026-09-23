@@ -1,3 +1,5 @@
+using AccountingHelper.Domain.Exceptions;
+using AccountingHelper.Domain.Models;
 using AccountingHelper.Infrastructure.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -13,11 +15,13 @@ public class ImportErrorConfiguration : IEntityTypeConfiguration<ImportErrorEnti
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
         builder.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-        builder.Property(e => e.Message).IsRequired().HasMaxLength(1000);
+        builder.Property(e => e.Message).IsRequired().HasMaxLength(ImportError.MessageMaxLength);
         
         // One error per file row. Redelivery cannot write the report twice, and the index is also
         // what makes the paged report an ordered scan instead of a sort.
-        builder.HasIndex(e => new { e.ImportJobId, e.RowNumber }).IsUnique();
+        builder.HasIndex(e => new { e.ImportJobId, e.RowNumber })
+            .IsUnique()
+            .HasDatabaseName(DatabaseConstraints.ImportErrorRow);
         
         builder.HasOne<ImportJobEntity>()
             .WithMany()

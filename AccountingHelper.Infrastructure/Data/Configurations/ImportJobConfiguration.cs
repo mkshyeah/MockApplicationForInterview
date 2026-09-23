@@ -1,3 +1,4 @@
+using AccountingHelper.Domain.Models;
 using AccountingHelper.Infrastructure.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -14,6 +15,6 @@ public class ImportJobConfiguration : IEntityTypeConfiguration<ImportJobEntity>
         builder.Property(e => e.Status).HasConversion<string>();
         builder.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         
-        builder.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+        builder.Property(e => e.FileName).IsRequired().HasMaxLength(ImportJob.FileNameMaxLength);
     }
 }

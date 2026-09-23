@@ -12,4 +12,6 @@ public class ImportJob
     public int FailedCount { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+    
+    public const int FileNameMaxLength = 255;
 }

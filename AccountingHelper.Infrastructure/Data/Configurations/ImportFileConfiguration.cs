@@ -1,3 +1,4 @@
+using AccountingHelper.Domain.Models;
 using AccountingHelper.Infrastructure.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -13,7 +14,7 @@ public class ImportFileConfiguration : IEntityTypeConfiguration<ImportFileEntity
         builder.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
         builder.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-        builder.Property(e => e.ContentType).IsRequired().HasMaxLength(100);
+        builder.Property(e => e.ContentType).IsRequired().HasMaxLength(ImportFile.ContentTypeMaxLength);
         builder.Property(e => e.Content).IsRequired();
         
         // Claim check: the message carries an id, the payload stays here. A broker is not storage,

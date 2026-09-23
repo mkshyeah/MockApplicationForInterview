@@ -1,4 +1,5 @@
 using AccountingHelper.Domain.Enums;
+using AccountingHelper.Domain.Exceptions;
 using AccountingHelper.Infrastructure.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -21,7 +22,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<EmployeeEntity>
         // The ExistsByEmailAsync check in the create handler is a fast path, not the guarantee:
         // two concurrent creates pass it together, and a bulk import passes it for every row of a
         // file it has already imported. Only the second insert failing here makes that safe.
-        builder.HasIndex(e => e.Email).IsUnique();
+        builder.HasIndex(e => e.Email).IsUnique().HasDatabaseName(DatabaseConstraints.EmployeeEmail);
 
         builder.Property(e => e.Status)
             .HasConversion<string>();
