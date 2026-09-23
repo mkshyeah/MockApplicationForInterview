@@ -1,5 +1,6 @@
 using AccountingHelper.Application.Caching;
 using AccountingHelper.Application.Extensions;
+using AccountingHelper.Application.Features.Imports;
 using AccountingHelper.Infrastructure.Extensions;
 using AccountingHelper.Worker.Consumers;
 using MassTransit;
@@ -54,6 +55,12 @@ try
         .Bind(builder.Configuration.GetSection(CacheSettings.SectionName))
         .Validate(s => s.Dashboard > TimeSpan.Zero, "Cache:Dashboard must be positive")
         .Validate(s => s.Lookups > TimeSpan.Zero, "Cache:Lookups must be positive")
+        .ValidateOnStart();
+
+    builder.Services.AddOptions<ImportSettings>()
+        .Bind(builder.Configuration.GetSection(ImportSettings.SectionName))
+        .Validate(s => s.MaxFileSizeBytes > 0, "Import:MaxFileSizeBytes must be positive")
+        .Validate(s => s.BatchSize > 0, "Import:BatchSize must be positive")
         .ValidateOnStart();
 
     builder.Services
