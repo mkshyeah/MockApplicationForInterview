@@ -1,12 +1,9 @@
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Exceptions;
 using AccountingHelper.Application.Mapping;
-using AccountingHelper.Contracts;
 using AccountingHelper.Contracts.Messaging;
-using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Exceptions;
 using AccountingHelper.Domain.Interfaces;
-using AccountingHelper.Domain.Models;
 using AccountingHelper.Domain.Services;
 using MassTransit;
 using MediatR;
@@ -46,42 +43,18 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
         if (position is null)
             throw new NotFoundException("Position", request.PositionId);
 
-        var employeeId = Guid.NewGuid();
-
-        var employee = new Employee
-        {
-            Id = employeeId,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = email,
-            DepartmentId = request.DepartmentId,
-            PositionId = request.PositionId,
-            Status = EmployeeStatus.Active,
-            HireDate = request.HireDate,
-            Department = department,
-            Position = position,
-            Salaries =
-            {
-                new Salary
-                {
-                    Id = Guid.NewGuid(),
-                    EmployeeId = employeeId,
-                    Amount = request.SalaryAmount,
-                    Type = request.SalaryType,
-                    EffectiveDate = request.HireDate
-                }
-            }
-        };
+        var (employee, balances) = EmployeeFactory.Hire(
+            request.FirstName, request.LastName, email,
+            request.DepartmentId, request.PositionId, request.HireDate,
+            request.SalaryAmount, request.SalaryType);
         
-        foreach (var type in Enum.GetValues<LeaveType>())
+        // Only the response needs these; the factory works with ids so the import does not load them per row.
+        employee.Department = department;
+        employee.Position = position;
+        
+        foreach (var balance in balances)
         {
-            _unitOfWork.LeaveBalances.Add(new LeaveBalance
-            {
-                Id = Guid.NewGuid(),
-                EmployeeId = employeeId,
-                LeaveType = type,
-                RemainingDays = LeaveEntitlement.DaysFor(type)
-            });
+            _unitOfWork.LeaveBalances.Add(balance);
         }
         
         _unitOfWork.Employees.Add(employee);
@@ -104,8 +77,8 @@ public class CreateEmployeeCommandHandler : IRequestHandler<CreateEmployeeComman
             throw new ConflictException($"Employee with email '{email}' already exists.");
         }
 
-        _logger.LogInformation("Employee {EmployeeId} was created.", employeeId);
-
+        _logger.LogInformation("Employee {EmployeeId} was created.", employee.Id);
+        
         return employee.ToResponse();
     }
 }
