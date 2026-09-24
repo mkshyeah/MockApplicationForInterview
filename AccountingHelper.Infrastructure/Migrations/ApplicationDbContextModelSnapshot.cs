@@ -54,6 +54,10 @@ namespace AccountingHelper.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_departments");
 
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_departments_name");
+
                     b.ToTable("departments", (string)null);
 
                     b.HasData(
@@ -845,6 +849,10 @@ namespace AccountingHelper.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_positions");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("ix_positions_title");
 
                     b.ToTable("positions", (string)null);
 

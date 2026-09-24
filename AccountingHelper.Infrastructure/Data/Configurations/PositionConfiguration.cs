@@ -18,6 +18,9 @@ public class PositionConfiguration : IEntityTypeConfiguration<PositionEntity>
             .IsRequired()
             .HasMaxLength(100);
 
+        // The CSV import looks positions up by title, so a title has to identify exactly one.
+        builder.HasIndex(e => e.Title).IsUnique();
+
         builder.Property(e => e.Grade)
             .HasConversion<string>();
 

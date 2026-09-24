@@ -17,6 +17,9 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<DepartmentEntity
             .IsRequired()
             .HasMaxLength(100);
         
+        // The CSV import looks departments up by name, so a name has to identify exactly one.
+        builder.HasIndex(e => e.Name).IsUnique();
+        
         builder.Property(e => e.Description)
             .HasMaxLength(500);
         
