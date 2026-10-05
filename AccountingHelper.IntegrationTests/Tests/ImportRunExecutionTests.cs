@@ -163,6 +163,165 @@ public class ImportRunExecutionTests : IntegrationTestBase
         });
     }
 
+    private Task<List<(int RowNumber, string Message)>> ErrorsAsync(Guid jobId) =>
+        WithDbContextAsync(async db => (await db.ImportErrors
+                .Where(e => e.ImportJobId == jobId)
+                .OrderBy(e => e.RowNumber)
+                .ToListAsync())
+            .Select(e => (e.RowNumber, e.Message))
+            .ToList());
+
+    [Fact]
+    public async Task RunImport_WithRowBreakingApiRules_ReportsEveryValidatorMessageInOneErrorRow()
+    {
+        // ARRANGE
+        await SeedReferencesAsync();
+        var jobId = await UploadAsync(Header +
+                                      ",NoName,not-an-email,Engineering,Developer,1000,Monthly,2024-01-15\n" + // line 2
+                                      "Neg,Salary,neg@import.test,Engineering,Developer,-5,Monthly,2024-01-15\n" + // line 3
+                                      ValidRow(4));                                                              // line 4
+
+        // ACT
+        await RunImportAsync(jobId);
+
+        // ASSERT
+        // The import runs CreateEmployeeCommandValidator, so it rejects exactly what POST /v1/employees rejects.
+        var errors = await ErrorsAsync(jobId);
+        errors.Select(e => e.RowNumber).Should().Equal(2, 3);
+        errors[0].Message.Should().Contain("First name").And.Contain("Email");
+        errors[1].Message.Should().Contain("Salary");
+
+        await WithDbContextAsync(async db =>
+            (await db.ImportJobs.SingleAsync(j => j.Id == jobId)).ImportedCount.Should().Be(1));
+    }
+
+    [Fact]
+    public async Task RunImport_WithDuplicateEmailInFile_KeepsFirstRow_AndReportsLaterOnesByRow()
+    {
+        // ARRANGE
+        await SeedReferencesAsync();
+        var jobId = await UploadAsync(Header +
+                                      "First,Copy,dup@import.test,Engineering,Developer,1000,Monthly,2024-01-15\n" +   // line 2
+                                      "Second,Copy,DUP@Import.Test,Engineering,Developer,1000,Monthly,2024-01-15\n" +  // line 3
+                                      "Third,Copy, dup@import.test ,Engineering,Developer,1000,Monthly,2024-01-15\n"); // line 4
+
+        // ACT
+        await RunImportAsync(jobId);
+
+        // ASSERT
+        // Normalized before comparing: case and spaces do not make a second person. Without the in-file
+        // check all three would reach one SaveChangesAsync and the unique index would fail the batch.
+        var errors = await ErrorsAsync(jobId);
+        errors.Select(e => e.RowNumber).Should().Equal(3, 4);
+        errors.Should().AllSatisfy(e => e.Message.Should().Contain("duplicates row 2"));
+
+        await WithDbContextAsync(async db =>
+            (await db.Employees.SingleAsync(e => e.Email == "dup@import.test")).FirstName.Should().Be("First"));
+    }
+
+    [Fact]
+    public async Task RunImport_WithDuplicateAcrossBatchBoundary_ReportsIt()
+    {
+        // ARRANGE
+        // The first occurrence is committed in batch one, the copy arrives in batch two: the in-file check
+        // has to survive ClearTracking and the end of the batch that claimed the email.
+        await SeedReferencesAsync();
+        var jobId = await UploadAsync(Header +
+                                      "First,Copy,dup@import.test,Engineering,Developer,1000,Monthly,2024-01-15\n" +
+                                      string.Concat(Enumerable.Range(0, BatchSize).Select(ValidRow)) +
+                                      "Late,Copy,dup@import.test,Engineering,Developer,1000,Monthly,2024-01-15\n");
+
+        // ACT
+        await RunImportAsync(jobId);
+
+        // ASSERT
+        var copyLine = BatchSize + 3;
+        var error = (await ErrorsAsync(jobId)).Should().ContainSingle().Subject;
+        error.RowNumber.Should().Be(copyLine);
+        error.Message.Should().Contain("duplicates row 2");
+    }
+
+    [Fact]
+    public async Task RunImport_WithEmailAlreadyInDatabase_ReportsRow_AndLeavesExistingEmployeeAlone()
+    {
+        // ARRANGE
+        var departmentId = await SeedDepartmentAsync("Engineering");
+        var positionId = await SeedPositionAsync("Developer", EmployeeGrade.Junior);
+        var existing = await CreateEmployeeAsync(departmentId, positionId, firstName: "Original", email: "taken@import.test");
+
+        var jobId = await UploadAsync(Header +
+                                      "Imposter,Copy,Taken@Import.Test,Engineering,Developer,1000,Monthly,2024-01-15\n" + // line 2
+                                      ValidRow(3));                                                                      // line 3
+
+        // ACT
+        await RunImportAsync(jobId);
+
+        // ASSERT
+        var error = (await ErrorsAsync(jobId)).Should().ContainSingle().Subject;
+        error.RowNumber.Should().Be(2);
+        error.Message.Should().Contain("already exists");
+
+        await WithDbContextAsync(async db =>
+        {
+            (await db.Employees.CountAsync(e => e.Email == "taken@import.test")).Should().Be(1);
+            (await db.Employees.SingleAsync(e => e.Email == "taken@import.test")).Id.Should().Be(existing.Id);
+        });
+    }
+
+    [Fact]
+    public async Task RunImport_WhenInvalidRowSharesEmailWithLaterRow_ImportsTheLaterRow()
+    {
+        // ARRANGE
+        // Only rows that passed mapping and validation claim an email: the invalid first row created nobody,
+        // so the later valid row is not a duplicate of anything.
+        await SeedReferencesAsync();
+        var jobId = await UploadAsync(Header +
+                                      "Bad,Salary,same@import.test,Engineering,Developer,-5,Monthly,2024-01-15\n" +  // line 2
+                                      "Good,Row,same@import.test,Engineering,Developer,1000,Monthly,2024-01-15\n");  // line 3
+
+        // ACT
+        await RunImportAsync(jobId);
+
+        // ASSERT
+        var error = (await ErrorsAsync(jobId)).Should().ContainSingle().Subject;
+        error.RowNumber.Should().Be(2);
+        error.Message.Should().Contain("Salary");
+
+        await WithDbContextAsync(async db =>
+            (await db.Employees.SingleAsync(e => e.Email == "same@import.test")).FirstName.Should().Be("Good"));
+    }
+
+    [Fact]
+    public async Task RunImport_OfSameFileUploadedTwice_CreatesNoDuplicates()
+    {
+        // ARRANGE
+        await SeedReferencesAsync();
+        var csv = Header + ValidRow(1) + ValidRow(2);
+
+        var firstJobId = await UploadAsync(csv);
+        await RunImportAsync(firstJobId);
+
+        var secondJobId = await UploadAsync(csv);
+
+        // ACT
+        await RunImportAsync(secondJobId);
+
+        // ASSERT
+        // A second upload is a new job, so the fast path does not apply: the email is the natural key that
+        // keeps it from hiring the same people again, and the report says so row by row.
+        await WithDbContextAsync(async db =>
+        {
+            var second = await db.ImportJobs.SingleAsync(j => j.Id == secondJobId);
+            second.Status.Should().Be(ImportJobStatus.Completed);
+            second.ImportedCount.Should().Be(0);
+            second.FailedCount.Should().Be(2);
+
+            (await db.Employees.CountAsync(e => e.Email.EndsWith("@import.test"))).Should().Be(2);
+        });
+
+        (await ErrorsAsync(secondJobId)).Should().AllSatisfy(e => e.Message.Should().Contain("already exists"));
+    }
+
     [Fact]
     public async Task RunImport_WhenJobAlreadyCompleted_DoesNothingOnRedelivery()
     {
