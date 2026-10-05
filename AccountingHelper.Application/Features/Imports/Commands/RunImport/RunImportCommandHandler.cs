@@ -1,10 +1,12 @@
 using AccountingHelper.Application.Exceptions;
+using AccountingHelper.Application.Features.Employees.Commands.CreateEmployee;
 using AccountingHelper.Application.Features.Imports.Parsing;
 using AccountingHelper.Contracts.Messaging;
 using AccountingHelper.Domain.Enums;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
 using AccountingHelper.Domain.Services;
+using FluentValidation;
 using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -17,17 +19,20 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ImportSettings _importSettings;
+    private readonly IValidator<CreateEmployeeCommand> _validator;
     private readonly ILogger<RunImportCommandHandler> _logger;
 
     public RunImportCommandHandler(
         IUnitOfWork unitOfWork,
         IPublishEndpoint publishEndpoint,
         IOptions<ImportSettings> importSettings,
+        IValidator<CreateEmployeeCommand> validator,
         ILogger<RunImportCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _publishEndpoint = publishEndpoint;
         _importSettings = importSettings.Value;
+        _validator = validator;
         _logger = logger;
     }
     
@@ -58,12 +63,21 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
         await _unitOfWork.SaveChangesAsync(ct);
 
         var references = await LoadReferencesAsync(ct);
-
+        
+        // Normalized email -> the line it first appeared on, across the whole file. Only committed batches
+        // are merged in, so a batch that has to be staged again does not find its own emails here.
+        var seenEmails = new Dictionary<string, int>(StringComparer.Ordinal);
+        
         foreach (var batch in EmployeeCsvReader.Read(file.Content, skip: 0).Chunk(_importSettings.BatchSize))
         {
-            await StageBatchAsync(job, batch, references, ct);
+            var batchEmails = await StageBatchAsync(job, batch, references, seenEmails, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             _unitOfWork.ClearTracking();
+
+            foreach (var (email, rowNumber) in batchEmails)
+            {
+                seenEmails[email] = rowNumber;
+            }
         }
         
         job.Status = ImportJobStatus.Completed;
@@ -81,14 +95,18 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
     
     // Everything one batch writes — employees, balances, error rows, progress — is staged here and lands in
     // a single SaveChangesAsync, so the counters can never describe rows that were not committed.
-    private async Task StageBatchAsync(
+    // Returns the emails this batch claimed, for the caller to merge once the batch is committed.
+    private async Task<Dictionary<string, int>> StageBatchAsync(
         ImportJob job,
         IReadOnlyList<ParsedCsvRow> batch,
         References references,
+        IReadOnlyDictionary<string, int> seenEmails,
         CancellationToken ct)
     {
         var errors = new List<ImportError>();
-        var imported = 0;
+        var batchEmails = new Dictionary<string, int>(StringComparer.Ordinal);
+        var candidates = new List<(int RowNumber, string Email, CreateEmployeeCommand Command)>();
+        
 
         foreach (var parsed in batch)
         {
@@ -100,7 +118,41 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
                 continue;
             }
             
-            var command = mapping.Command;
+            // The same rules the API applies, so the import cannot accept what POST /v1/employees rejects.
+            var validation = _validator.Validate(mapping.Command);
+
+            if (!validation.IsValid)
+            {
+                errors.Add(ToError(job.Id, parsed.RowNumber, validation.Errors.Select(e =>e.ErrorMessage)));
+                continue;
+            }
+            
+            // The one definition of "the same person", shared with the create handler and the unique index.
+            var email = EmailNormalizer.Normalize(mapping.Command.Email);
+
+            if (seenEmails.TryGetValue(email, out var firstRow) || batchEmails.TryGetValue(email, out firstRow))
+            {
+                errors.Add(ToError(job.Id, parsed.RowNumber,
+                    [$"Email '{email}' duplicates row {firstRow}."]));
+                continue;
+            }
+            
+            batchEmails[email] = parsed.RowNumber;
+            candidates.Add((parsed.RowNumber, email, mapping.Command));
+        }
+        
+        // One query per batch instead of ExistsByEmailAsync per row.
+        var existing = await _unitOfWork.Employees.GetExistingEmailsAsync(candidates.Select(c => c.Email).ToList(), ct);
+        var imported = 0;
+
+        foreach (var (rowNumber, email, command) in candidates)
+        {
+            if (existing.Contains(email))
+            {
+                errors.Add(ToError(job.Id, rowNumber, [$"Employee with email '{email}' already exists."]));
+                continue;
+            }
+
             var (employee, balances) = EmployeeFactory.Hire(
                 command.FirstName, command.LastName, command.Email,
                 command.DepartmentId, command.PositionId, command.HireDate,
@@ -111,16 +163,17 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
             {
                 _unitOfWork.LeaveBalances.Add(balance);
             }
-            
             imported++;
         }
-        
+
         _unitOfWork.ImportJobs.AddErrors(errors);
         
         job.ImportedCount += imported;
         job.FailedCount += errors.Count;
         
         await _unitOfWork.ImportJobs.ApplyProgressAsync(job, ct);
+        
+        return batchEmails;
     }
     
     // One error row per file row, never one per broken rule: it keeps the report's length equal to FailedCount.
