@@ -16,6 +16,8 @@ namespace AccountingHelper.Application.Features.Imports.Commands.RunImport;
 
 public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
 {
+    private const int HeaderRowNumber = 1;
+    
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ImportSettings _importSettings;
@@ -51,11 +53,25 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
             _logger.LogInformation("Import job {ImportJobId} is already {Status}; ignoring redelivery.", job.Id, job.Status);
             return;
         }
-        
-        var file = await _unitOfWork.ImportJobs.GetFileAsync(job.Id, ct)
-            ?? throw new InvalidOperationException($"Import job '{job.Id}' has no file.");
 
-        job.TotalRows = EmployeeCsvReader.CountRecords(file.Content);
+        var file = await _unitOfWork.ImportJobs.GetFileAsync(job.Id, ct);
+
+        if (file == null)
+        {
+            await FailAsync(job, "The uploaded file is missing.", ct);
+            return;
+        }
+
+        try
+        {
+            job.TotalRows = EmployeeCsvReader.CountRecords(file.Content);
+        }
+        catch (InvalidImportFileException ex)
+        {
+            await FailAsync(job, ex.Message, ct);
+            return;
+        }
+
         job.Status = ImportJobStatus.Processing;
         job.StartedAt ??= DateTime.UtcNow;
 
@@ -174,6 +190,22 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
         await _unitOfWork.ImportJobs.ApplyProgressAsync(job, ct);
         
         return batchEmails;
+    }
+    
+    // The file cannot be read as a whole. Deterministic, so the handler returns instead of throwing: five
+    // retries would only repeat the same answer. The reason goes into the existing report as one error on
+    // the header line, so the client reads it where it already reads row errors.
+    private async Task FailAsync(ImportJob job, string reason, CancellationToken ct)
+    {
+        job.Status = ImportJobStatus.Failed;
+        job.StartedAt ??= DateTime.UtcNow;
+        job.CompletedAt = DateTime.UtcNow;
+        
+        _unitOfWork.ImportJobs.AddErrors([ToError(job.Id, HeaderRowNumber, [reason])]);
+        await _unitOfWork.ImportJobs.ApplyProgressAsync(job, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+        
+        _logger.LogWarning("Import job {ImportJobId} failed: {Reason}", job.Id, reason);
     }
     
     // One error row per file row, never one per broken rule: it keeps the report's length equal to FailedCount.
