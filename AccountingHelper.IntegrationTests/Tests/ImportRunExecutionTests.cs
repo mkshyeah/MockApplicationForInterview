@@ -322,6 +322,79 @@ public class ImportRunExecutionTests : IntegrationTestBase
         (await ErrorsAsync(secondJobId)).Should().AllSatisfy(e => e.Message.Should().Contain("already exists"));
     }
 
+    [Theory]
+    [InlineData("FirstName,LastName,Email\nA,B,a@import.test\n", "Missing required columns: Department, Position, SalaryAmount, SalaryType, HireDate.")]
+    // Not empty in bytes, so it passes the upload validator, but there is no header to read.
+    [InlineData("\n\n", "The file is empty.")]
+    public async Task RunImport_WhenFileCannotBeRead_FailsJob_WithReasonOnHeaderLine(string csv, string reason)
+    {
+        // ARRANGE
+        await SeedReferencesAsync();
+        var jobId = await UploadAsync(csv);
+
+        // ACT
+        // Returns rather than throws: a broken header is deterministic, and retries would only repeat it.
+        var act = () => RunImportAsync(jobId);
+
+        // ASSERT
+        await act.Should().NotThrowAsync();
+
+        await WithDbContextAsync(async db =>
+        {
+            var job = await db.ImportJobs.SingleAsync(j => j.Id == jobId);
+            job.Status.Should().Be(ImportJobStatus.Failed);
+            job.StartedAt.Should().NotBeNull();
+            job.CompletedAt.Should().NotBeNull();
+            // Failed means "not the file", not "some rows were bad": no row was read, so nothing is counted.
+            job.TotalRows.Should().Be(0);
+            job.ImportedCount.Should().Be(0);
+            job.FailedCount.Should().Be(0);
+
+            (await db.Employees.AnyAsync(e => e.Email.EndsWith("@import.test"))).Should().BeFalse();
+        });
+
+        // The reason lives in the same report as row errors, on the header's line.
+        (await ErrorsAsync(jobId)).Should().Equal((1, reason));
+    }
+
+    [Fact]
+    public async Task RunImport_WhenFileIsMissing_FailsJob()
+    {
+        // ARRANGE
+        var jobId = await UploadAsync(Header + ValidRow(1));
+
+        // The claim check points at nothing: not reachable through the API today, but it is once phase 9
+        // moves the content to blob storage, where a file can disappear on its own.
+        await WithDbContextAsync(async db =>
+            await db.ImportFiles.Where(f => f.ImportJobId == jobId).ExecuteDeleteAsync());
+
+        // ACT
+        await RunImportAsync(jobId);
+
+        // ASSERT
+        await WithDbContextAsync(async db =>
+            (await db.ImportJobs.SingleAsync(j => j.Id == jobId)).Status.Should().Be(ImportJobStatus.Failed));
+
+        (await ErrorsAsync(jobId)).Should().Equal((1, "The uploaded file is missing."));
+    }
+
+    [Fact]
+    public async Task RunImport_WhenJobAlreadyFailed_DoesNothingOnRedelivery()
+    {
+        // ARRANGE
+        var jobId = await UploadAsync("FirstName\nA\n");
+        await RunImportAsync(jobId);
+
+        // ACT
+        // Without the fast path the second pass would write the header error again and hit the unique
+        // (import_job_id, row_number) index.
+        var act = () => RunImportAsync(jobId);
+
+        // ASSERT
+        await act.Should().NotThrowAsync();
+        (await ErrorsAsync(jobId)).Should().ContainSingle();
+    }
+
     [Fact]
     public async Task RunImport_WhenJobAlreadyCompleted_DoesNothingOnRedelivery()
     {
