@@ -3,6 +3,7 @@ using AccountingHelper.Application.Features.Employees.Commands.CreateEmployee;
 using AccountingHelper.Application.Features.Imports.Parsing;
 using AccountingHelper.Contracts.Messaging;
 using AccountingHelper.Domain.Enums;
+using AccountingHelper.Domain.Exceptions;
 using AccountingHelper.Domain.Interfaces;
 using AccountingHelper.Domain.Models;
 using AccountingHelper.Domain.Services;
@@ -17,6 +18,9 @@ namespace AccountingHelper.Application.Features.Imports.Commands.RunImport;
 public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
 {
     private const int HeaderRowNumber = 1;
+    // A lost email race is resolved by restaging, and losing it twice on the same batch is already unlikely.
+    // Past this the exception goes to the retry policy rather than looping here.
+    private const int MaxBatchAttempts = 3;
     
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPublishEndpoint _publishEndpoint;
@@ -86,9 +90,10 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
         
         foreach (var batch in EmployeeCsvReader.Read(file.Content, skip: 0).Chunk(_importSettings.BatchSize))
         {
-            var batchEmails = await StageBatchAsync(job, batch, references, seenEmails, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
-            _unitOfWork.ClearTracking();
+            var batchEmails = await CommitBatchAsync(job, batch, references, seenEmails, ct);
+
+            if (batchEmails is null)
+                return;
 
             foreach (var (email, rowNumber) in batchEmails)
             {
@@ -107,6 +112,54 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
         _logger.LogInformation(
             "Import job {ImportJobId} completed: {ImportedCount} imported, {FailedCount} failed of {TotalRows}.",
             job.Id, job.ImportedCount, job.FailedCount, job.TotalRows);
+    }
+    
+    // Stages and saves one batch, resolving unique violations by the index that raised them.
+    // Returns null when another delivery is processing the same job and this one has to stop.
+    private async Task<Dictionary<string, int>?> CommitBatchAsync(
+        ImportJob job,
+        IReadOnlyList<ParsedCsvRow> batch,
+        References references,
+        IReadOnlyDictionary<string, int> seenEmails,
+        CancellationToken ct)
+    {
+        var importedBefore = job.ImportedCount;
+        var failedBefore = job.FailedCount;
+
+        for (var attempt = 1;; attempt++)
+        {
+            var batchEmails = await StageBatchAsync(job, batch, references, seenEmails, ct);
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(ct);
+                _unitOfWork.ClearTracking();
+                return batchEmails;
+            }
+            // Someone hired one of these people between our lookup and our insert. Postgres reports a unique
+            // violation only once the competing insert has committed, so restaging runs GetExistingEmailsAsync
+            // again and sees the winner. The clear comes first: the rolled-back rows are still tracked as Added
+            // and would otherwise ride along with the restaged batch.
+            catch (UniqueConstraintViolationException ex)
+                when (ex.ConstraintName == DatabaseConstraints.EmployeeEmail && attempt < MaxBatchAttempts)
+            {
+                _logger.LogInformation(
+                    "Import job {ImportJobId} lost an email race; restaging the batch (attempt {Attempt}).",
+                    job.Id, attempt);
+
+                _unitOfWork.ClearTracking();
+                job.ImportedCount = importedBefore;
+                job.FailedCount = failedBefore;
+            }
+            // Another delivery has already written an error row for this line, so it owns the job. Stop and let
+            // the message be acknowledged, without touching the status: that delivery is still working, and
+            // marking the job completed from here would publish counters that are not final.
+            catch (UniqueConstraintViolationException ex) when (ex.ConstraintName == DatabaseConstraints.ImportErrorRow)
+            {
+                _logger.LogInformation(ex, "Import job {ImportJobId} is being processed by another delivery.", job.Id);
+                return null;
+            }
+        }
     }
     
     // Everything one batch writes — employees, balances, error rows, progress — is staged here and lands in
@@ -203,7 +256,17 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
         
         _unitOfWork.ImportJobs.AddErrors([ToError(job.Id, HeaderRowNumber, [reason])]);
         await _unitOfWork.ImportJobs.ApplyProgressAsync(job, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(ct);
+        }
+        // A concurrent delivery reached the same verdict on the same file and wrote it first.
+        catch (UniqueConstraintViolationException ex) when (ex.ConstraintName == DatabaseConstraints.ImportErrorRow)
+        {
+            _logger.LogInformation(ex, "Import job {ImportJobId} was already failed by another delivery.", job.Id);
+            return;
+        }
         
         _logger.LogWarning("Import job {ImportJobId} failed: {Reason}", job.Id, reason);
     }
