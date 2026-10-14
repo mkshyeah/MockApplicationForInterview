@@ -83,12 +83,24 @@ public class RunImportCommandHandler : IRequestHandler<RunImportCommand>
         await _unitOfWork.SaveChangesAsync(ct);
 
         var references = await LoadReferencesAsync(ct);
+
+        // The checkpoint. Counters are committed in the same SaveChangesAsync as their batch and records are
+        // handled in order, so after any crash Imported + Failed is exactly the number of records already done.
+        // A redelivery or a retry resumes there instead of reporting its own earlier work as "already exists".
+        var processed = job.ImportedCount + job.FailedCount;
+
+        if (processed > 0)
+        {
+            _logger.LogInformation(
+                "Import job {ImportJobId} resumes after {Processed} of {TotalRows} records.",
+                job.Id, processed, job.TotalRows);
+        }
         
         // Normalized email -> the line it first appeared on, across the whole file. Only committed batches
         // are merged in, so a batch that has to be staged again does not find its own emails here.
         var seenEmails = new Dictionary<string, int>(StringComparer.Ordinal);
         
-        foreach (var batch in EmployeeCsvReader.Read(file.Content, skip: 0).Chunk(_importSettings.BatchSize))
+        foreach (var batch in EmployeeCsvReader.Read(file.Content, skip: processed).Chunk(_importSettings.BatchSize))
         {
             var batchEmails = await CommitBatchAsync(job, batch, references, seenEmails, ct);
 
