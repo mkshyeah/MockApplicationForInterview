@@ -395,6 +395,100 @@ public class ImportRunExecutionTests : IntegrationTestBase
         (await ErrorsAsync(jobId)).Should().ContainSingle();
     }
 
+    // Leaves the job of the full file exactly as a worker that died after committing its first batch would:
+    // Processing, with the first batch's employees, error rows and counters in the database. The prefix is
+    // imported for real through its own job, and its counters and error rows are moved onto the full one.
+    private async Task SimulateCrashAfterFirstBatchAsync(Guid fullJobId, IEnumerable<string> firstBatchRows)
+    {
+        var prefixJobId = await UploadAsync(Header + string.Concat(firstBatchRows));
+        await RunImportAsync(prefixJobId);
+
+        await WithDbContextAsync(async db =>
+        {
+            var prefix = await db.ImportJobs.SingleAsync(j => j.Id == prefixJobId);
+            var full = await db.ImportJobs.SingleAsync(j => j.Id == fullJobId);
+
+            full.Status = ImportJobStatus.Processing;
+            full.StartedAt = prefix.StartedAt;
+            full.ImportedCount = prefix.ImportedCount;
+            full.FailedCount = prefix.FailedCount;
+
+            await db.ImportErrors
+                .Where(e => e.ImportJobId == prefixJobId)
+                .ExecuteUpdateAsync(s => s.SetProperty(e => e.ImportJobId, fullJobId));
+
+            await db.SaveChangesAsync();
+        });
+    }
+
+    [Fact]
+    public async Task RunImport_AfterCrashMidFile_ResumesFromCounters()
+    {
+        // ARRANGE
+        await SeedReferencesAsync();
+
+        // Line 3 is bad and sits in the batch that was committed before the crash.
+        var rows = Enumerable.Range(0, BatchSize + 3)
+            .Select(i => i == 1
+                ? "Bad,Department,bad@import.test,Marketing,Developer,1000,Monthly,2024-01-15\n"
+                : ValidRow(i))
+            .ToList();
+
+        var jobId = await UploadAsync(Header + string.Concat(rows));
+        await SimulateCrashAfterFirstBatchAsync(jobId, rows.Take(BatchSize));
+
+        var startedAt = await WithDbContextAsync(async db =>
+            (await db.ImportJobs.SingleAsync(j => j.Id == jobId)).StartedAt);
+
+        // ACT
+        await RunImportAsync(jobId);
+
+        // ASSERT
+        // Without the checkpoint the restart would restage batch one, write line 3's error again, hit the unique
+        // index on error rows, read that as "another delivery owns this job" and leave it in Processing forever.
+        await WithDbContextAsync(async db =>
+        {
+            var job = await db.ImportJobs.SingleAsync(j => j.Id == jobId);
+            job.Status.Should().Be(ImportJobStatus.Completed);
+            job.ImportedCount.Should().Be(BatchSize + 2);
+            job.FailedCount.Should().Be(1);
+            (job.ImportedCount + job.FailedCount).Should().Be(job.TotalRows);
+            job.StartedAt.Should().Be(startedAt);
+
+            (await db.Employees.CountAsync(e => e.Email.EndsWith("@import.test"))).Should().Be(BatchSize + 2);
+        });
+
+        // The committed batch's work is not reported back as "already exists": the only error is the real one.
+        (await ErrorsAsync(jobId)).Should().Equal((3, "Unknown department 'Marketing'."));
+    }
+
+    [Fact]
+    public async Task RunImport_AfterCrash_DuplicateOfCommittedRow_IsReportedAsAlreadyExisting()
+    {
+        // ARRANGE
+        // The in-file duplicate map is rebuilt from the resume point, so it does not know line 2 any more.
+        // The database does: the copy is still rejected, with the less specific of the two messages. This pins
+        // the known trade-off down, so a change to it is a decision rather than an accident.
+        await SeedReferencesAsync();
+
+        var rows = Enumerable.Range(0, BatchSize).Select(ValidRow).ToList();
+        var copyOfLine2 = rows[0].Replace("First0", "Copy");
+
+        var jobId = await UploadAsync(Header + string.Concat(rows) + copyOfLine2);
+        await SimulateCrashAfterFirstBatchAsync(jobId, rows);
+
+        // ACT
+        await RunImportAsync(jobId);
+
+        // ASSERT
+        var error = (await ErrorsAsync(jobId)).Should().ContainSingle().Subject;
+        error.RowNumber.Should().Be(BatchSize + 2);
+        error.Message.Should().Contain("already exists");
+
+        await WithDbContextAsync(async db =>
+            (await db.Employees.SingleAsync(e => e.Email == "user0@import.test")).FirstName.Should().Be("First0"));
+    }
+
     [Fact]
     public async Task RunImport_WhenJobAlreadyCompleted_DoesNothingOnRedelivery()
     {
