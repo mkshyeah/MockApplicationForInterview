@@ -54,6 +54,21 @@ public class EmployeeRepository : IEmployeeRepository
          .AnyAsync(e => e.Email == email, ct);
    }
 
+   public async Task<IReadOnlySet<string>> GetExistingEmailsAsync(IReadOnlyCollection<string> emails, CancellationToken ct)
+   {
+      if (emails.Count == 0)
+         return new HashSet<string>();
+      
+      // Npgsql translates Contains over a collection into email = ANY(@p): one array parameter,
+      // not an IN list that grows with the batch.
+      var existing = await _dbContext.Employees
+         .Where(e => emails.Contains(e.Email))
+         .Select(e => e.Email)
+         .ToListAsync(ct);
+      
+      return existing.ToHashSet(StringComparer.Ordinal);
+   }
+
    public async Task<EmployeeStatus?> GetStatusAsync(Guid employeeId, CancellationToken ct)
    {
       return await _dbContext.Employees

@@ -54,6 +54,10 @@ namespace AccountingHelper.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_departments");
 
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_departments_name");
+
                     b.ToTable("departments", (string)null);
 
                     b.HasData(
@@ -140,6 +144,10 @@ namespace AccountingHelper.Infrastructure.Migrations
                     b.HasIndex("DepartmentId")
                         .HasDatabaseName("ix_employees_department_id");
 
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("ix_employees_email");
+
                     b.HasIndex("PositionId")
                         .HasDatabaseName("ix_employees_position_id");
 
@@ -219,6 +227,146 @@ namespace AccountingHelper.Infrastructure.Migrations
                             PositionId = new Guid("33333333-0000-0000-0000-000000000006"),
                             Status = "Active"
                         });
+                });
+
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.ImportErrorEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("ImportJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("import_job_id");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("message");
+
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("row_number");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_import_errors");
+
+                    b.HasIndex("ImportJobId", "RowNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_import_errors_import_job_id_row_number");
+
+                    b.ToTable("import_errors", (string)null);
+                });
+
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.ImportFileEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("ImportJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("import_job_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_import_files");
+
+                    b.HasIndex("ImportJobId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_import_files_import_job_id");
+
+                    b.ToTable("import_files", (string)null);
+                });
+
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.ImportJobEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("FailedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed_count");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("file_name");
+
+                    b.Property<int>("ImportedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("imported_count");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<int>("TotalRows")
+                        .HasColumnType("integer")
+                        .HasColumnName("total_rows");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_import_jobs");
+
+                    b.ToTable("import_jobs", (string)null);
                 });
 
             modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.LeaveBalanceEntity", b =>
@@ -702,6 +850,10 @@ namespace AccountingHelper.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_positions");
 
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("ix_positions_title");
+
                     b.ToTable("positions", (string)null);
 
                     b.HasData(
@@ -1091,6 +1243,26 @@ namespace AccountingHelper.Infrastructure.Migrations
                     b.Navigation("Department");
 
                     b.Navigation("Position");
+                });
+
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.ImportErrorEntity", b =>
+                {
+                    b.HasOne("AccountingHelper.Infrastructure.Data.Entities.ImportJobEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ImportJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_import_errors_import_jobs_import_job_id");
+                });
+
+            modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.ImportFileEntity", b =>
+                {
+                    b.HasOne("AccountingHelper.Infrastructure.Data.Entities.ImportJobEntity", null)
+                        .WithOne()
+                        .HasForeignKey("AccountingHelper.Infrastructure.Data.Entities.ImportFileEntity", "ImportJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_import_files_import_jobs_import_job_id");
                 });
 
             modelBuilder.Entity("AccountingHelper.Infrastructure.Data.Entities.LeaveBalanceEntity", b =>

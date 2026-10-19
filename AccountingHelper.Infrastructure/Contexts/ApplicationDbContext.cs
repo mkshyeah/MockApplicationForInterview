@@ -16,6 +16,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     
     public DbSet<PayrollRunEntity> PayrollRuns => Set<PayrollRunEntity>();
     public DbSet<PayslipEntity> Payslips => Set<PayslipEntity>();
+    public DbSet<ImportJobEntity> ImportJobs => Set<ImportJobEntity>();
+    public DbSet<ImportErrorEntity> ImportErrors => Set<ImportErrorEntity>();
+    public DbSet<ImportFileEntity> ImportFiles => Set<ImportFileEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
