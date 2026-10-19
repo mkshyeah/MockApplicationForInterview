@@ -267,6 +267,7 @@ Known gap: a transient failure that outlives the retry policy sends the message 
 | `GET` | `/v1/payroll-runs/{id}/payslips` | Payslips of a run (flat, no pagination) |
 | `POST` | `/v1/imports` | Upload an employee CSV (`multipart/form-data`, field `file`) — `202 Accepted` + `Location` |
 | `GET` | `/v1/imports/{id}` | Import status, counters and timestamps |
+| `GET` | `/v1/imports/{id}/errors` | Import error report, one row per failed file line, ordered by line (`offset`/`limit`) |
 
 ## API conventions
 
