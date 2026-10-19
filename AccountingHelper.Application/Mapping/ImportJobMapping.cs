@@ -1,4 +1,6 @@
+using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
+using AccountingHelper.Application.Features.Imports.Queries.GetImportErrors;
 using AccountingHelper.Domain.Models;
 
 namespace AccountingHelper.Application.Mapping;
@@ -22,4 +24,9 @@ public static class ImportJobMapping
         RowNumber = model.RowNumber,
         ErrorMessage = model.Message
     };
+
+    public static GetImportErrorsQuery ToErrorsQuery(this PaginationRequest request, Guid importJobId) => new(
+        ImportJobId: importJobId,
+        Offset: request.Offset,
+        Limit: request.Limit);
 }

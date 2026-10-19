@@ -1,6 +1,9 @@
+using AccountingHelper.Application.DTOs.Requests;
 using AccountingHelper.Application.DTOs.Responses;
 using AccountingHelper.Application.Features.Imports.Commands.CreateImportJob;
+using AccountingHelper.Application.Features.Imports.Queries.GetImportErrors;
 using AccountingHelper.Application.Features.Imports.Queries.GetImportJob;
+using AccountingHelper.Application.Mapping;
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -49,5 +52,22 @@ public class ImportsController : ControllerBase
     {
         var job = await _sender.Send(new GetImportJobQuery(id), ct);
         return Ok(job);
+    }
+
+    // Paged, unlike the flat payslip list: a ten-thousand-row file can fail on most of its rows, and the
+    // report being rows rather than a JSON column was chosen precisely so it can be read a page at a time.
+    [HttpGet("{id:guid}/errors")]
+    [ProducesResponseType(typeof(PagedResponse<ImportErrorResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResponse<ImportErrorResponse>>> GetImportErrors(
+        Guid id,
+        [FromQuery] PaginationRequest request,
+        CancellationToken ct = default)
+    {
+        var query = request.ToErrorsQuery(id);
+        var (errors, total) = await _sender.Send(query, ct);
+
+        return Ok(PagedResponse<ImportErrorResponse>.Create(errors, total, query.Limit, query.Offset));
     }
 }
