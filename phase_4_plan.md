@@ -85,7 +85,7 @@ fail-open. Брокер несёт **состояние, которого бол
 | 2 | Доменные события существующих мутаций + событийная эвикция кэша | `feat/rabbitmq-infrastructure` | ✅ |
 | 3 | Payroll run: `PayrollRun` + `Payslip`, 202 + статус, идемпотентный консьюмер | `feat/payroll-run` | ✅ |
 | 4 | Надёжность: transactional outbox, retry/redelivery, error queue | `feat/payroll-run` | ✅ |
-| 5 | Bulk CSV import: claim-check, построчные ошибки, отчёт об импорте | `feat/bulk-csv-import` | ⬜ |
+| 5 | Bulk CSV import: claim-check, построчные ошибки, отчёт об импорте | `feat/bulk-csv-import` | ✅ |
 
 ---
 
