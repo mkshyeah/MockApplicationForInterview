@@ -13,5 +13,6 @@ public static class WorkerConsumers
         configurator.AddConsumer<PingConsumer>();
         configurator.AddConsumer<CacheInvalidationConsumer>();
         configurator.AddConsumer<PayrollRunConsumer>();
+        configurator.AddConsumer<ImportRunConsumer>();
     }
 }

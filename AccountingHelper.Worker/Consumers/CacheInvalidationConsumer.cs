@@ -8,7 +8,8 @@ namespace AccountingHelper.Worker.Consumers;
 public sealed class CacheInvalidationConsumer :
     IConsumer<SalaryChanged>,
     IConsumer<EmployeeFired>,
-    IConsumer<EmployeeHired>
+    IConsumer<EmployeeHired>,
+    IConsumer<ImportCompleted>
 {
     private readonly HybridCache _cache;
     private readonly ILogger<CacheInvalidationConsumer> _logger;
@@ -44,7 +45,18 @@ public sealed class CacheInvalidationConsumer :
             ,context.Message.EmployeeId);
         return EvictDashboardAsync(context.CancellationToken);
     }
-
+    
+    // One eviction per import, not one per hired employee: the import publishes no EmployeeHired, so a
+    // ten-thousand-row file costs the cache exactly what a single hire does.
+    public Task Consume(ConsumeContext<ImportCompleted> context)
+    {
+        _logger.LogDebug(
+            "Import job {ImportJobId} completed with {ImportedCount} employees. Dashboard cache was invalidated."
+            ,context.Message.ImportJobId, context.Message.ImportedCount);
+        
+        return EvictDashboardAsync(context.CancellationToken);
+    }
+    
     private async Task EvictDashboardAsync(CancellationToken ct) =>
         await _cache.RemoveAsync(CacheKeys.ReportingDashboard, ct);
 }

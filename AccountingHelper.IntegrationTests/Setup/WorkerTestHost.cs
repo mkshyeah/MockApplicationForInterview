@@ -1,5 +1,6 @@
 using AccountingHelper.Application.Caching;
 using AccountingHelper.Application.Extensions;
+using AccountingHelper.Application.Features.Imports;
 using AccountingHelper.Infrastructure.Extensions;
 using AccountingHelper.Worker.Consumers;
 using MassTransit;
@@ -44,6 +45,9 @@ public sealed class WorkerTestHost : IAsyncDisposable
 
         services.AddOptions<CacheSettings>()
             .Bind(configuration.GetSection(CacheSettings.SectionName));
+        
+        services.AddOptions<ImportSettings>()
+            .Bind(configuration.GetSection(ImportSettings.SectionName));
 
         services
             .AddInfrastructureServices(configuration)
