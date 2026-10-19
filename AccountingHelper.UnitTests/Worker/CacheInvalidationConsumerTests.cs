@@ -74,6 +74,21 @@ public class CacheInvalidationConsumerTests
     }
 
     [Fact]
+    public async Task Consume_ImportCompleted_EvictsDashboardOnly()
+    {
+        // ARRANGE
+        // An import publishes no EmployeeHired, so this one message is the only thing standing between
+        // a finished import and a dashboard that ignores it until the TTL runs out.
+        var context = ContextFor(new ImportCompleted(Guid.NewGuid(), ImportedCount: 10_000, FailedCount: 3));
+
+        // ACT
+        await _consumer.Consume(context);
+
+        // ASSERT
+        VerifyDashboardEvictedAlone();
+    }
+
+    [Fact]
     public async Task Consume_EmployeeFired_EvictsDashboardOnly()
     {
         // ARRANGE
