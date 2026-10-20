@@ -28,13 +28,15 @@ public static class MessagingServiceCollectionExtensions
             .ValidateOnStart();
         
         // AddEntityFrameworkOutbox wants a value while the container is still being built, so this one
-        // setting is bound by hand. Everything else resolves IOptions from the provider, after
-        // ValidateOnStart has run.
+        // setting is bound by hand — and checked by hand, since ValidateOnStart has not run yet. A zero here
+        // would not wait for startup validation to complain: it would be handed to the delivery service as is.
         var outbox = configuration
             .GetSection(RabbitMqSettings.SectionName)
             .Get<RabbitMqSettings>()?.Outbox ?? new OutboxSettings();
-        
-        
+
+        if (outbox.QueryDelay <= TimeSpan.Zero)
+            throw new InvalidOperationException("RabbitMq:Outbox:QueryDelay must be configured and positive.");
+
         services.AddMassTransit(x =>
         {
             x.SetKebabCaseEndpointNameFormatter();

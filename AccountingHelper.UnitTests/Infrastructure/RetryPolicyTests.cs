@@ -40,8 +40,9 @@ public class RetryPolicyTests
         }
     }
 
-    private static readonly TimeSpan[] Intervals =
-        Enumerable.Repeat(TimeSpan.FromMilliseconds(1), new RetrySettings().Intervals.Length).ToArray();
+    // The production shape — five steps, as in both hosts' appsettings.json — at a millisecond each. The count is
+    // spelled out because RetrySettings has no default to borrow it from; MessagingSettingsTests checks the files.
+    private static readonly TimeSpan[] Intervals = Enumerable.Repeat(TimeSpan.FromMilliseconds(1), 5).ToArray();
 
     private static async Task<ITestHarness> StartHarnessAsync(ServiceProvider provider)
     {
