@@ -152,7 +152,7 @@ See `phase_1_plan.md`. Cleanup before MediatR:
 - *Google:* `IDistributedCache Redis`, `cache-aside pattern`, `output caching .NET 8`,
   `cache stampede`, `StackExchange.Redis ConnectionMultiplexer singleton`, `HybridCache .NET`.
 
-### Phase 4 — RabbitMQ/MassTransit  +  Feature: **Monthly Payroll Run & Bulk Import**  ← current
+### Phase 4 — RabbitMQ/MassTransit  +  Feature: **Monthly Payroll Run & Bulk Import**  ✅ DONE
 See `phase_4_plan.md`. Locked in: консьюмеры в отдельном проекте `AccountingHelper.Worker`;
 outbox отдельным блоком **после** наивной публикации (сначала прочувствовать dual-write);
 объём = payroll run + CSV import + событийная инвалидация кэша; MassTransit **v8** (v9 платный).
@@ -334,8 +334,12 @@ secures. Foundations (0–2) come first so all of this is safe to build, and the
       блок 1 Redis-инфраструктура + fail-open политика → блок 2 дашборд и справочники без кэша →
       блок 3 cache-aside на HybridCache, TTL-инвалидация, каталог `CacheKeys` как интерфейс к фазе 4;
       see `phase_3_plan.md`)
-- [ ] Phase 4 — RabbitMQ + Payroll Run & Bulk Import  ← current (see `phase_4_plan.md`)
-- [ ] Phase 5 — SignalR + Activity Feed & Run Progress
+- [x] Phase 4 — RabbitMQ + Payroll Run & Bulk Import  ✅ done (291 tests: 149 unit + 142 integration;
+      блок 1 RabbitMQ + MassTransit + отдельный хост Worker, fail-fast политика брокера → блок 2 доменные
+      события и событийная эвикция дашборда → блок 3 payroll run с идемпотентным консьюмером → блок 4
+      transactional outbox, retry, error queue → блок 5 bulk CSV import: claim check, батчи, построчный
+      отчёт, возобновление по счётчикам; see `phase_4_plan.md`)
+- [ ] Phase 5 — SignalR + Activity Feed & Run Progress  ← next
 - [ ] Phase 6 — GraphQL + Directory & Reporting Explorer
 - [ ] Phase 7 — Auth + Roles & Self-Service Portal
 - [ ] Phase 8 — Containerization & Orchestration
