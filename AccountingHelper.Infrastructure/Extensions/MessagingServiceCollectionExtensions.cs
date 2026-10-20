@@ -87,11 +87,6 @@ public static class MessagingServiceCollectionExtensions
                     h.Username(rabbitSettings.UserName);
                     h.Password(rabbitSettings.Password);
                 });
-                cfg.UseMessageRetry(r =>
-                {
-                    r.Immediate(2);
-                    r.Interval(3, TimeSpan.FromSeconds(5));
-                });
                 cfg.ConfigureEndpoints(context);
             });
         });
